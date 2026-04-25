@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForumPHs — Administración de Propiedad Horizontal · Panamá</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:     #0A090C;
+  --carbon:   #111018;
+  --graphite: #1C1A26;
+  --surface:  #231F30;
+  --amethyst: #7C3AED;
+  --ame-dim:  rgba(124,58,237,0.15);
+  --ame-glow: rgba(124,58,237,0.30);
+  --terra:    #C4622D;
+  --chalk:    #F9F8FF;
+  --chalk-72: rgba(249,248,255,0.72);
+  --chalk-42: rgba(249,248,255,0.42);
+  --chalk-12: rgba(249,248,255,0.12);
+  --chalk-06: rgba(249,248,255,0.06);
+  --gold:     #D4A853;
+  --font-display: 'Cinzel', serif;
+  --font-serif:   'EB Garamond', serif;
+  --font-sans:    'DM Sans', sans-serif;
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body { background:var(--void); color:var(--chalk); font-family:var(--font-sans); overflow-x:hidden; }
+
+
+/* ── FORUMPHS WORDMARK ── */
+.wm { display:inline-flex; align-items:baseline; gap:0; line-height:1; }
+.wm .f  { font-family:'EB Garamond',serif; font-weight:400; letter-spacing:0.01em; color:#fff; }
+.wm .ph { font-family:'DM Sans',sans-serif; font-weight:700; letter-spacing:0.06em; color:#C4622D; }
+.wm .s  { font-family:'DM Sans',sans-serif; font-weight:700; letter-spacing:0.04em; color:#C4622D; }
+.wm-xl .f, .wm-xl .ph, .wm-xl .s { font-size:58px; }
+.wm-lg .f, .wm-lg .ph, .wm-lg .s { font-size:38px; }
+.wm-md .f, .wm-md .ph, .wm-md .s { font-size:26px; }
+.wm-sm .f, .wm-sm .ph, .wm-sm .s { font-size:18px; }
+.wm-xs .f, .wm-xs .ph, .wm-xs .s { font-size:13px; }
+.wm-nav .f, .wm-nav .ph, .wm-nav .s { font-size:20px; }
+.wm-tint .f { color:var(--am-d, #3A1F4A); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:var(--void); }
+::-webkit-scrollbar-thumb { background:var(--amethyst); }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top:0; left:0; right:0; z-index:100;
+  padding: 20px 48px;
+  display: flex; align-items:center; justify-content:space-between;
+  background: rgba(10,9,12,0.90); backdrop-filter:blur(16px);
+  border-bottom: 1px solid var(--chalk-06);
+  transition: border-color 0.3s ease;
+}
+.nav-brand {
+  display: flex; flex-direction:column; gap:2px;
+}
+.nav-logo { display:inline-block; }
+.nav-sub {
+  font-family: var(--font-sans);
+  font-size: 9px; letter-spacing:0.22em;
+  text-transform: uppercase; color:var(--chalk-42);
+}
+.nav-links {
+  display: flex; align-items:center; gap:28px;
+}
+.nav-link {
+  font-family: var(--font-sans); font-size:13px;
+  color: var(--chalk-72); text-decoration:none;
+  letter-spacing:0.04em; transition:color 0.2s;
+}
+.nav-link:hover { color:var(--chalk); }
+.nav-cta {
+  font-family: var(--font-sans); font-size:12px; font-weight:600;
+  letter-spacing:0.08em; color:var(--void);
+  background:var(--amethyst); padding:10px 22px;
+  text-decoration:none; border-radius:2px;
+  transition:all 0.2s ease;
+}
+.nav-cta:hover { background:#6D28D9; }
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh;
+  display: grid; grid-template-columns:1fr 1fr;
+  align-items: center; gap:0;
+  padding-top: 80px;
+  position: relative; overflow:hidden;
+}
+
+.hero-left {
+  padding: 80px 48px 80px 64px;
+  position: relative; z-index:2;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items:center; gap:10px;
+  font-family: var(--font-display); font-size:9px;
+  letter-spacing:0.28em; text-transform:uppercase;
+  color:var(--amethyst); border:1px solid var(--ame-glow);
+  background:var(--ame-dim); padding:6px 16px;
+  margin-bottom: 32px;
+}
+.eyebrow-dot {
+  width:5px; height:5px; background:var(--amethyst);
+  border-radius:50%; animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: clamp(2.4rem, 4.5vw, 4rem);
+  font-weight: 500; line-height:1.18;
+  letter-spacing:-0.01em; color:var(--chalk);
+  margin-bottom: 28px;
+}
+.hero-title em { font-style:italic; color:var(--amethyst); }
+.hero-title .accent { color:var(--terra); font-style:normal; }
+
+.hero-body {
+  font-family: var(--font-sans); font-size:16px;
+  font-weight:300; color:var(--chalk-72);
+  line-height:1.75; max-width:480px;
+  margin-bottom: 40px;
+}
+
+.hero-actions {
+  display: flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.btn-primary {
+  font-family: var(--font-sans); font-size:13px; font-weight:600;
+  letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--void); background:var(--amethyst);
+  padding:14px 32px; text-decoration:none; border-radius:2px;
+  transition:all 0.2s ease; display:inline-flex; align-items:center; gap:8px;
+}
+.btn-primary:hover { background:#6D28D9; transform:translateY(-1px); }
+.btn-ghost {
+  font-family: var(--font-sans); font-size:13px;
+  color:var(--chalk-72); text-decoration:none;
+  border-bottom:1px solid var(--chalk-12); padding-bottom:2px;
+  transition:all 0.2s;
+}
+.btn-ghost:hover { color:var(--chalk); border-color:var(--chalk-42); }
+
+.hero-trust {
+  margin-top:48px; padding-top:32px;
+  border-top:1px solid var(--chalk-06);
+  display:flex; gap:40px;
+}
+.trust-stat { display:flex; flex-direction:column; gap:4px; }
+.trust-num {
+  font-family:var(--font-display); font-size:28px;
+  font-weight:600; color:var(--chalk); letter-spacing:0.04em;
+}
+.trust-label {
+  font-family:var(--font-sans); font-size:10px;
+  letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--chalk-42);
+}
+
+/* Hero right */
+.hero-right {
+  position: relative; height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 70%);
+}
+
+.building-wrap {
+  position:relative; width:380px; height:480px;
+}
+
+.building-wrap svg {
+  width:100%; height:100%;
+  filter:drop-shadow(0 0 40px rgba(124,58,237,0.20));
+}
+
+.data-badge {
+  position:absolute;
+  font-family:var(--font-sans); font-size:10px;
+  letter-spacing:0.14em; text-transform:uppercase;
+  background:rgba(28,25,38,0.92); border:1px solid var(--ame-glow);
+  color:var(--amethyst); padding:6px 12px;
+  backdrop-filter:blur(8px); white-space:nowrap;
+  animation: floatBadge 3s ease-in-out infinite;
+}
+.data-badge:nth-child(2) { animation-delay:0.5s; }
+.data-badge:nth-child(3) { animation-delay:1s; }
+.data-badge:nth-child(4) { animation-delay:1.5s; }
+
+@keyframes floatBadge {
+  0%,100% { transform:translateY(0); }
+  50% { transform:translateY(-5px); }
+}
+
+/* ── SECTION BASE ── */
+.section { padding:100px 64px; position:relative; }
+.section-label {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.30em; text-transform:uppercase;
+  color:var(--amethyst); display:flex; align-items:center; gap:16px;
+  margin-bottom:48px;
+}
+.section-label::before { content:''; width:32px; height:1px; background:var(--amethyst); }
+
+.section-title {
+  font-family:var(--font-serif);
+  font-size:clamp(2rem,3.5vw,3rem);
+  font-weight:500; line-height:1.2; letter-spacing:-0.01em;
+  color:var(--chalk); margin-bottom:20px;
+}
+.section-title em { font-style:italic; color:var(--amethyst); }
+
+.section-sub {
+  font-family:var(--font-sans); font-size:16px; font-weight:300;
+  color:var(--chalk-72); line-height:1.7;
+  max-width:580px; margin-bottom:64px;
+}
+
+/* ── ABOUT ── */
+#about {
+  background:var(--carbon);
+  border-top:1px solid var(--chalk-06);
+  border-bottom:1px solid var(--chalk-06);
+}
+.about-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start;
+}
+.about-body {
+  font-family:var(--font-serif); font-size:19px;
+  font-style:italic; color:var(--chalk-72);
+  line-height:1.75; margin-bottom:32px;
+}
+.about-body strong { font-style:normal; color:var(--chalk); font-weight:500; }
+.about-detail {
+  font-family:var(--font-sans); font-size:14px;
+  color:var(--chalk-42); line-height:1.8;
+}
+.ivette-card {
+  background:var(--graphite);
+  border:1px solid var(--chalk-06);
+  padding:48px 40px;
+  position:relative; overflow:hidden;
+}
+.ivette-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--amethyst), var(--terra));
+}
+.ivette-placeholder {
+  width:100%; aspect-ratio:4/3;
+  background:var(--surface);
+  border:1px dashed var(--ame-glow);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:12px; margin-bottom:28px;
+  position:relative;
+}
+.ivette-name {
+  font-family:var(--font-display); font-size:18px;
+  letter-spacing:0.10em; color:var(--chalk);
+  margin-bottom:4px;
+}
+.ivette-title {
+  font-family:var(--font-sans); font-size:11px;
+  letter-spacing:0.20em; text-transform:uppercase;
+  color:var(--amethyst);
+}
+.ivette-quote {
+  margin-top:24px; padding-top:24px;
+  border-top:1px solid var(--chalk-06);
+  font-family:var(--font-serif); font-size:16px;
+  font-style:italic; color:var(--chalk-72); line-height:1.65;
+}
+
+/* ── SERVICES ── */
+#servicios { background:var(--void); }
+.services-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:2px;
+}
+.svc-card {
+  background:var(--carbon); padding:44px 36px;
+  position:relative; overflow:hidden;
+  transition:background 0.3s ease;
+  border:1px solid transparent;
+}
+.svc-card:hover { background:var(--graphite); border-color:var(--ame-glow); }
+.svc-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:var(--amethyst);
+  transform:scaleX(0); transform-origin:left;
+  transition:transform 0.4s ease;
+}
+.svc-card:nth-child(4)::before,
+.svc-card:nth-child(5)::before,
+.svc-card:nth-child(6)::before { background:var(--terra); }
+.svc-card:hover::before { transform:scaleX(1); }
+
+.svc-icon {
+  width:48px; height:48px; margin-bottom:24px;
+}
+.svc-num {
+  font-family:var(--font-display); font-size:10px;
+  letter-spacing:0.22em; color:var(--amethyst);
+  margin-bottom:12px; display:block;
+}
+.svc-card:nth-child(4) .svc-num,
+.svc-card:nth-child(5) .svc-num,
+.svc-card:nth-child(6) .svc-num { color:var(--terra); }
+.svc-title {
+  font-family:var(--font-serif); font-size:21px;
+  font-weight:500; color:var(--chalk);
+  margin-bottom:14px; line-height:1.25;
+}
+.svc-body {
+  font-family:var(--font-sans); font-size:14px;
+  font-weight:300; color:var(--chalk-42); line-height:1.75;
+}
+
+/* ── SLA DASHBOARD ── */
+#dashboard {
+  background:var(--carbon);
+  border-top:1px solid var(--chalk-06);
+}
+.dashboard-grid {
+  display:grid; grid-template-columns:1fr 1.4fr; gap:64px; align-items:center;
+}
+.dashboard-panel {
+  background:var(--graphite);
+  border:1px solid var(--chalk-06);
+  border-radius:4px; overflow:hidden;
+}
+.dp-header {
+  background:var(--surface); padding:14px 20px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--chalk-06);
+}
+.dp-title {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.22em; text-transform:uppercase; color:var(--chalk-42);
+}
+.dp-badge {
+  font-family:var(--font-sans); font-size:9px;
+  letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--amethyst); background:var(--ame-dim);
+  border:1px solid var(--ame-glow); padding:3px 10px;
+}
+.dp-body { padding:24px 20px; display:flex; flex-direction:column; gap:16px; }
+
+.dp-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 0; border-bottom:1px solid var(--chalk-06);
+}
+.dp-row:last-child { border-bottom:none; }
+.dp-row-label {
+  font-family:var(--font-sans); font-size:12px;
+  letter-spacing:0.08em; color:var(--chalk-72);
+}
+.dp-row-val {
+  font-family:var(--font-display); font-size:14px;
+  letter-spacing:0.1em; color:var(--chalk);
+}
+.dp-row-val.green { color:#4ADE80; }
+.dp-row-val.amber { color:#FBBF24; }
+.dp-row-val.ame   { color:var(--amethyst); }
+
+.dp-sla-bar { margin-top:8px; }
+.dp-sla-label {
+  display:flex; justify-content:space-between;
+  font-family:var(--font-sans); font-size:11px;
+  color:var(--chalk-42); margin-bottom:8px;
+}
+.dp-bar-track {
+  height:5px; background:var(--surface); border-radius:2px; overflow:hidden;
+}
+.dp-bar-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg, var(--amethyst), #A855F7);
+  animation: fillBar 1.8s ease-out forwards;
+  transform-origin:left; transform:scaleX(0);
+}
+@keyframes fillBar { to { transform:scaleX(1); } }
+
+.dp-incidents {
+  display:grid; grid-template-columns:1fr 1fr; gap:2px; margin-top:16px;
+}
+.dp-inc-card {
+  background:var(--surface); padding:16px;
+  text-align:center;
+}
+.dp-inc-num {
+  font-family:var(--font-display); font-size:28px;
+  letter-spacing:0.04em; display:block; margin-bottom:4px;
+}
+.dp-inc-label {
+  font-family:var(--font-sans); font-size:9px;
+  letter-spacing:0.18em; text-transform:uppercase; color:var(--chalk-42);
+}
+
+/* ── PROPERTIES MAP ── */
+#propiedades {
+  background:var(--void); overflow:hidden;
+}
+.props-layout {
+  display:grid; grid-template-columns:1.2fr 1fr; gap:80px; align-items:center;
+}
+.props-network { width:100%; max-width:480px; }
+
+.prop-nodes {
+  display:flex; flex-direction:column; gap:16px;
+}
+.prop-node {
+  display:flex; align-items:center; gap:20px;
+  padding:20px 24px; background:var(--carbon);
+  border:1px solid var(--chalk-06);
+  border-left:3px solid var(--amethyst);
+  transition:all 0.2s ease; cursor:default;
+}
+.prop-node:hover { background:var(--graphite); border-color:var(--ame-glow); }
+.prop-node:nth-child(even) { border-left-color:var(--terra); }
+.prop-node-icon {
+  width:36px; height:36px; flex-shrink:0;
+  background:var(--ame-dim); border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+}
+.prop-node-info { flex:1; }
+.prop-node-name {
+  font-family:var(--font-sans); font-size:13px; font-weight:500;
+  color:var(--chalk); margin-bottom:3px;
+}
+.prop-node-meta {
+  font-family:var(--font-sans); font-size:11px;
+  color:var(--chalk-42); letter-spacing:0.06em;
+}
+.prop-node-units {
+  font-family:var(--font-display); font-size:18px;
+  color:var(--amethyst); letter-spacing:0.06em;
+}
+
+/* ── TESTIMONIALS ── */
+#testimonios {
+  background:var(--carbon);
+  border-top:1px solid var(--chalk-06);
+}
+.testi-grid { display:flex; flex-direction:column; gap:0; }
+.testi-item {
+  padding:52px 0; border-bottom:1px solid var(--chalk-06);
+  display:grid; grid-template-columns:1fr 3fr; gap:48px; align-items:start;
+}
+.testi-item:first-child { border-top:1px solid var(--chalk-06); }
+.testi-meta { display:flex; flex-direction:column; gap:8px; padding-top:8px; }
+.testi-name {
+  font-family:var(--font-display); font-size:13px;
+  letter-spacing:0.12em; color:var(--chalk); font-weight:500;
+}
+.testi-role {
+  font-family:var(--font-sans); font-size:11px;
+  color:var(--chalk-42); letter-spacing:0.08em; line-height:1.5;
+}
+.testi-since {
+  font-family:var(--font-sans); font-size:10px;
+  letter-spacing:0.15em; text-transform:uppercase;
+  color:var(--amethyst); margin-top:8px;
+}
+.testi-quote {
+  font-family:var(--font-serif); font-size:21px;
+  font-style:italic; font-weight:400;
+  color:var(--chalk-72); line-height:1.68;
+  position:relative;
+}
+.testi-quote::before {
+  content:'\201C';
+  font-size:60px; line-height:0.8;
+  color:var(--amethyst); opacity:0.4;
+  display:block; margin-bottom:12px;
+  font-family:var(--font-serif);
+}
+
+/* ── FAQ ── */
+#faq {
+  background:var(--void);
+  border-top:1px solid var(--chalk-06);
+}
+.faq-header {
+  max-width:640px; margin-bottom:64px;
+}
+.faq-list {
+  display:flex; flex-direction:column; gap:2px;
+}
+.faq-item {
+  background:var(--carbon);
+  border-left:3px solid var(--amethyst);
+  padding:36px 40px;
+  transition:background 0.2s ease, border-color 0.2s ease;
+  cursor:default;
+}
+.faq-item:nth-child(even) { border-left-color:var(--surface); }
+.faq-item:hover { background:var(--graphite); border-left-color:var(--amethyst); }
+.faq-q {
+  font-family:var(--font-serif); font-size:20px;
+  font-weight:500; color:var(--chalk);
+  line-height:1.3; margin-bottom:16px;
+}
+.faq-a {
+  font-family:var(--font-sans); font-size:14px;
+  font-weight:300; color:var(--chalk-42);
+  line-height:1.8; margin:0;
+}
+.faq-a strong { color:var(--chalk-72); font-weight:500; }
+.faq-a .accent { color:var(--terra); font-weight:600; }
+.faq-cta-block {
+  margin-top:48px;
+  background:var(--carbon);
+  border:1px solid var(--chalk-06);
+  border-top:3px solid var(--terra);
+  padding:48px 40px;
+  text-align:center;
+}
+.faq-cta-label {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.25em; text-transform:uppercase;
+  color:var(--amethyst); margin-bottom:16px; display:block;
+}
+.faq-cta-title {
+  font-family:var(--font-serif);
+  font-size:clamp(1.3rem,2.5vw,1.8rem);
+  font-weight:500; color:var(--chalk);
+  line-height:1.35; margin-bottom:12px;
+}
+.faq-cta-sub {
+  font-family:var(--font-sans); font-size:14px;
+  font-weight:300; color:var(--chalk-42);
+  line-height:1.7; margin-bottom:28px;
+}
+
+/* ── CONTACT ── */
+#contacto {
+  background:var(--graphite);
+  border-top:1px solid var(--chalk-06);
+}
+.contact-grid {
+  display:grid; grid-template-columns:1fr 1.6fr; gap:64px; align-items:start;
+}
+.contact-info { display:flex; flex-direction:column; gap:32px; }
+.contact-brand {
+  border-left:3px solid var(--terra);
+  padding-left:20px;
+}
+.contact-brand-name {
+  font-family:var(--font-display); font-size:11px;
+  letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--amethyst); margin-bottom:8px; display:block;
+}
+.contact-brand-line {
+  font-family:var(--font-serif); font-size:17px;
+  color:var(--chalk); margin-bottom:4px; line-height:1.4;
+}
+.contact-brand-sub {
+  font-family:var(--font-sans); font-size:13px;
+  color:var(--chalk-42);
+}
+.contact-items { display:flex; flex-direction:column; gap:20px; }
+.contact-item { display:flex; align-items:flex-start; gap:14px; }
+.contact-icon {
+  width:36px; height:36px; flex-shrink:0;
+  background:var(--surface); border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+}
+.contact-item-label {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.20em; text-transform:uppercase;
+  color:var(--amethyst); margin-bottom:4px; display:block;
+}
+.contact-item-val {
+  font-family:var(--font-sans); font-size:14px;
+  color:var(--chalk); text-decoration:none; display:block;
+}
+.contact-item-val:hover { color:var(--amethyst); }
+.contact-item-note {
+  font-family:var(--font-sans); font-size:12px;
+  color:var(--chalk-42); margin-top:2px; display:block;
+}
+.contact-rep {
+  background:var(--void);
+  border:1px solid var(--chalk-06);
+  padding:20px 24px;
+}
+.contact-rep-label {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.20em; text-transform:uppercase;
+  color:var(--amethyst); margin-bottom:8px; display:block;
+}
+.contact-rep-name {
+  font-family:var(--font-serif); font-size:18px;
+  color:var(--chalk); margin-bottom:4px;
+}
+.contact-rep-title {
+  font-family:var(--font-sans); font-size:12px;
+  color:var(--chalk-42);
+}
+
+/* Contact form */
+.contact-form-wrap {
+  background:var(--void);
+  border:1px solid var(--chalk-06);
+  padding:40px 36px;
+}
+.form-header-label {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--amethyst); margin-bottom:6px; display:block;
+}
+.form-header-sub {
+  font-family:var(--font-sans); font-size:13px;
+  font-weight:300; color:var(--chalk-42);
+  margin-bottom:28px; line-height:1.6;
+}
+.contact-form { display:flex; flex-direction:column; gap:20px; }
+.form-field { display:flex; flex-direction:column; gap:6px; }
+.form-label {
+  font-family:var(--font-display); font-size:9px;
+  letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--amethyst);
+}
+.form-input,
+.form-select,
+.form-textarea {
+  font-family:var(--font-sans); font-size:14px;
+  color:var(--chalk); background:var(--carbon);
+  border:1px solid var(--chalk-06); border-radius:2px;
+  padding:12px 16px; outline:none;
+  transition:border-color 0.2s ease;
+  width:100%;
+}
+.form-input::placeholder,
+.form-textarea::placeholder { color:var(--chalk-42); }
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus { border-color:var(--amethyst); }
+.form-select {
+  appearance:none; cursor:pointer;
+}
+.form-select option { background:var(--carbon); color:var(--chalk); }
+.form-textarea { resize:vertical; line-height:1.6; }
+.form-submit {
+  font-family:var(--font-display); font-size:10px;
+  font-weight:600; letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--chalk); background:var(--terra);
+  border:none; border-radius:2px;
+  padding:16px 28px; cursor:pointer; width:100%;
+  margin-top:4px; transition:background 0.2s ease;
+}
+.form-submit:hover { background:#A3501F; }
+.form-note {
+  font-family:var(--font-sans); font-size:12px;
+  color:var(--chalk-42); text-align:center;
+  line-height:1.6;
+}
+
+/* ── CTA ── */
+#cta {
+  padding:120px 64px;
+  background:var(--carbon);
+  border-top:1px solid var(--chalk-06);
+  position:relative; overflow:hidden;
+  text-align:center;
+}
+.cta-bg-text {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-family:var(--font-display); font-size:clamp(80px,14vw,200px);
+  letter-spacing:0.08em; color:rgba(124,58,237,0.04);
+  white-space:nowrap; pointer-events:none; user-select:none;
+}
+.cta-inner { position:relative; max-width:680px; margin:0 auto; }
+.cta-title {
+  font-family:var(--font-serif); font-size:clamp(2rem,4vw,3.2rem);
+  font-weight:500; font-style:italic; line-height:1.25;
+  color:var(--chalk); margin-bottom:24px;
+}
+.cta-sub {
+  font-family:var(--font-sans); font-size:16px; font-weight:300;
+  color:var(--chalk-72); line-height:1.7; margin-bottom:48px;
+}
+.cta-actions { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; }
+
+/* ── FOOTER ── */
+footer {
+  padding:48px 64px;
+  border-top:1px solid var(--chalk-06);
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:24px;
+}
+.footer-brand { display:flex; flex-direction:column; gap:4px; }
+.footer-logo { display:inline-block; }
+.footer-tagline {
+  font-family:var(--font-sans); font-size:10px;
+  letter-spacing:0.20em; text-transform:uppercase; color:var(--chalk-42);
+}
+.footer-right { text-align:right; }
+.footer-credit {
+  font-family:var(--font-sans); font-size:10px;
+  letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--chalk-42); line-height:2.2;
+}
+.footer-credit strong { color:var(--amethyst); }
+
+/* ── REVEAL ANIMATION ── */
+.reveal { opacity:0; transform:translateY(20px); transition:opacity 0.8s ease, transform 0.8s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px) {
+  nav { padding:18px 24px; }
+  .nav-links { display:none; }
+  #hero { grid-template-columns:1fr; min-height:auto; }
+  .hero-left { padding:100px 24px 48px; }
+  .hero-right { display:none; }
+  .section { padding:80px 24px; }
+  .about-grid, .dashboard-grid, .props-layout, .contact-grid { grid-template-columns:1fr; gap:48px; }
+  .services-grid { grid-template-columns:1fr; }
+  .testi-item { grid-template-columns:1fr; gap:24px; }
+  .faq-item { padding:28px 24px; }
+  .contact-form-wrap { padding:28px 24px; }
+  footer { padding:40px 24px; }
+  #cta { padding:80px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="main-nav">
+  <div class="nav-brand">
+    <span class="wm wm-nav"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
+    <span class="nav-sub">Administración · Panamá · Ley 284</span>
+  </div>
+  <div class="nav-links">
+    <a href="#about" class="nav-link">Nosotros</a>
+    <a href="#servicios" class="nav-link">Servicios</a>
+    <a href="#dashboard" class="nav-link">Cómo funciona</a>
+    <a href="#testimonios" class="nav-link">Clientes</a>
+    <a href="#faq" class="nav-link">Preguntas</a>
+    <a href="#contacto" class="nav-cta">Diagnóstico gratuito</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-dot"></span>
+      Administración Profesional · Desde 2015
+    </div>
+
+    <h1 class="hero-title">
+      Su propiedad merece<br>
+      un sistema, <em>no</em><br>
+      un intermediario.
+    </h1>
+
+    <p class="hero-body">
+      ForumPHs administra más de 1.500 unidades en Panamá con SLAs auditables,
+      respaldo jurídico y reportes mensuales que rinden cuentas — no excusas.
+      Bajo Ley 284 de 2022.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#contacto" class="btn-primary">Solicitar evaluación gratuita →</a>
+      <a href="#servicios" class="btn-ghost">Ver cómo funciona</a>
+    </div>
+
+    <div class="hero-trust">
+      <div class="trust-stat">
+        <span class="trust-num">+1.500</span>
+        <span class="trust-label">Unidades gestionadas</span>
+      </div>
+      <div class="trust-stat">
+        <span class="trust-num">7</span>
+        <span class="trust-label">Propiedades activas</span>
+      </div>
+      <div class="trust-stat">
+        <span class="trust-num">10</span>
+        <span class="trust-label">Años de trayectoria</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Building isometric SVG -->
+  <div class="hero-right">
+    <div class="building-wrap">
+      <div class="data-badge" style="top:12%;right:-8%">SLA AUDITABLES</div>
+      <div class="data-badge" style="top:38%;left:-12%">LEY 284 · 2022</div>
+      <div class="data-badge" style="bottom:28%;right:-10%">REPORTE MENSUAL</div>
+      <div class="data-badge" style="bottom:10%;left:-5%">GESTIÓN JURÍDICA</div>
+
+      <svg viewBox="0 0 380 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bldTop" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#6D28D9" stop-opacity="0.7"/>
+          </linearGradient>
+          <linearGradient id="bldLeft" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#4C1D95" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#3B1070" stop-opacity="0.6"/>
+          </linearGradient>
+          <linearGradient id="bldRight" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5B21B6" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#4C1D95" stop-opacity="0.5"/>
+          </linearGradient>
+        </defs>
+        <ellipse cx="190" cy="448" rx="120" ry="18" fill="rgba(124,58,237,0.12)"/>
+        <polygon points="60,180 190,108 190,440 60,380" fill="url(#bldLeft)" stroke="rgba(124,58,237,0.4)" stroke-width="0.5"/>
+        <polygon points="190,108 320,180 320,380 190,440" fill="url(#bldRight)" stroke="rgba(124,58,237,0.3)" stroke-width="0.5"/>
+        <polygon points="60,180 190,108 320,180 190,252" fill="url(#bldTop)" stroke="rgba(200,180,255,0.5)" stroke-width="0.8"/>
+        <g fill="rgba(200,180,255,0.15)" stroke="rgba(124,58,237,0.4)" stroke-width="0.5">
+          <rect x="72" y="200" width="22" height="14" rx="1"/>
+          <rect x="72" y="228" width="22" height="14" rx="1"/>
+          <rect x="72" y="256" width="22" height="14" rx="1"/>
+          <rect x="72" y="284" width="22" height="14" rx="1"/>
+          <rect x="72" y="312" width="22" height="14" rx="1"/>
+          <rect x="72" y="340" width="22" height="14" rx="1"/>
+          <rect x="104" y="188" width="22" height="14" rx="1"/>
+          <rect x="104" y="216" width="22" height="14" rx="1"/>
+          <rect x="104" y="244" width="22" height="14" rx="1"/>
+          <rect x="104" y="272" width="22" height="14" rx="1"/>
+          <rect x="104" y="300" width="22" height="14" rx="1"/>
+          <rect x="104" y="328" width="22" height="14" rx="1"/>
+          <rect x="104" y="356" width="22" height="14" rx="1"/>
+          <rect x="136" y="178" width="22" height="14" rx="1"/>
+          <rect x="136" y="206" width="22" height="14" rx="1"/>
+          <rect x="136" y="234" width="22" height="14" rx="1"/>
+          <rect x="136" y="262" width="22" height="14" rx="1"/>
+          <rect x="136" y="290" width="22" height="14" rx="1"/>
+          <rect x="136" y="318" width="22" height="14" rx="1"/>
+          <rect x="136" y="346" width="22" height="14" rx="1"/>
+          <rect x="136" y="374" width="22" height="14" rx="1"/>
+        </g>
+        <g fill="rgba(200,180,255,0.10)" stroke="rgba(124,58,237,0.3)" stroke-width="0.5">
+          <rect x="204" y="188" width="22" height="14" rx="1"/>
+          <rect x="204" y="216" width="22" height="14" rx="1"/>
+          <rect x="204" y="244" width="22" height="14" rx="1"/>
+          <rect x="204" y="272" width="22" height="14" rx="1"/>
+          <rect x="204" y="300" width="22" height="14" rx="1"/>
+          <rect x="204" y="328" width="22" height="14" rx="1"/>
+          <rect x="204" y="356" width="22" height="14" rx="1"/>
+          <rect x="240" y="200" width="22" height="14" rx="1"/>
+          <rect x="240" y="228" width="22" height="14" rx="1"/>
+          <rect x="240" y="256" width="22" height="14" rx="1"/>
+          <rect x="240" y="284" width="22" height="14" rx="1"/>
+          <rect x="240" y="312" width="22" height="14" rx="1"/>
+          <rect x="240" y="340" width="22" height="14" rx="1"/>
+          <rect x="276" y="214" width="22" height="14" rx="1"/>
+          <rect x="276" y="242" width="22" height="14" rx="1"/>
+          <rect x="276" y="270" width="22" height="14" rx="1"/>
+          <rect x="276" y="298" width="22" height="14" rx="1"/>
+          <rect x="276" y="326" width="22" height="14" rx="1"/>
+        </g>
+        <g fill="rgba(200,180,255,0.55)">
+          <rect x="72" y="228" width="22" height="14" rx="1"/>
+          <rect x="136" y="262" width="22" height="14" rx="1"/>
+          <rect x="104" y="300" width="22" height="14" rx="1"/>
+          <rect x="204" y="244" width="22" height="14" rx="1"/>
+          <rect x="276" y="270" width="22" height="14" rx="1"/>
+          <rect x="240" y="312" width="22" height="14" rx="1"/>
+        </g>
+        <polygon points="190,80 230,108 190,108 150,108" fill="rgba(124,58,237,0.5)" stroke="rgba(200,180,255,0.5)" stroke-width="0.8"/>
+        <line x1="190" y1="40" x2="190" y2="80" stroke="rgba(124,58,237,0.8)" stroke-width="1"/>
+        <circle cx="190" cy="36" r="5" fill="var(--amethyst)" opacity="0.8"/>
+        <line x1="125" y1="180" x2="255" y2="180" stroke="rgba(200,180,255,0.2)" stroke-width="0.5"/>
+        <line x1="155" y1="165" x2="225" y2="165" stroke="rgba(200,180,255,0.2)" stroke-width="0.5"/>
+        <line x1="190" y1="108" x2="190" y2="440" stroke="rgba(200,180,255,0.25)" stroke-width="1"/>
+        <line x1="60" y1="180" x2="60" y2="380" stroke="rgba(124,58,237,0.3)" stroke-width="0.8"/>
+        <line x1="320" y1="180" x2="320" y2="380" stroke="rgba(124,58,237,0.25)" stroke-width="0.8"/>
+        <line x1="60" y1="240" x2="20" y2="240" stroke="rgba(124,58,237,0.3)" stroke-width="0.8" stroke-dasharray="3,3"/>
+        <line x1="320" y1="320" x2="348" y2="320" stroke="rgba(124,58,237,0.3)" stroke-width="0.8" stroke-dasharray="3,3"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="section">
+  <div class="about-grid">
+    <div>
+      <div class="section-label">Quiénes somos</div>
+      <h2 class="section-title">Diez años mirando<br>lo que nadie<br>quería <em>ver.</em></h2>
+      <p class="about-body">
+        En 2015, ForumPHs nació de una constatación incómoda: la mayoría de las Propiedades
+        Horizontales en Panamá no tenían un administrador —
+        <strong>tenían un intermediario sin rendición de cuentas.</strong>
+      </p>
+      <p class="about-body">
+        Cuotas sin destino claro. Asambleas sin actas. Morosidad que nadie perseguía.
+        Y Juntas Directivas que cargaban solas con decisiones que requerían criterio
+        jurídico, contable y operativo al mismo tiempo.
+      </p>
+      <p class="about-detail">
+        Hoy gestionamos ~1.500 unidades en 7 propiedades.<br>
+        El mismo estándar para cada una. Sin excepción.
+      </p>
+    </div>
+
+    <div class="ivette-card">
+      <img src="./ivette.webp" alt="Ivette Flores — Abogada · Gerente General · ForumPHs"
+           style="width:100%;aspect-ratio:4/3;object-fit:cover;object-position:80% top;
+                  margin-bottom:28px;border-radius:2px;display:block;">
+      <div class="ivette-name">IVETTE FLORES</div>
+      <div class="ivette-title">Abogada · Gerente General</div>
+      <div class="ivette-quote">
+        "Administrar sin criterio jurídico no es administrar — es postergar problemas.
+        Cada propiedad que firmamos es un compromiso de sistema, no de intención."
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="servicios" class="section">
+  <div class="section-label">Nuestros servicios</div>
+  <h2 class="section-title">Todo lo que su PH<br>necesita, <em>integrado.</em></h2>
+  <p class="section-sub">
+    No vendemos servicios sueltos. Entregamos un sistema de administración completo —
+    jurídico, contable y operativo — bajo un mismo estándar y un solo punto de contacto.
+  </p>
+
+  <div class="services-grid">
+    <div class="svc-card reveal">
+      <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="10" width="32" height="32" rx="2" stroke="rgba(124,58,237,0.6)" stroke-width="1.5"/>
+        <line x1="8" y1="20" x2="40" y2="20" stroke="rgba(124,58,237,0.4)" stroke-width="1"/>
+        <line x1="16" y1="30" x2="32" y2="30" stroke="rgba(124,58,237,0.4)" stroke-width="1"/>
+        <line x1="16" y1="36" x2="28" y2="36" stroke="rgba(124,58,237,0.3)" stroke-width="1"/>
+        <rect x="14" y="6" width="4" height="8" rx="2" fill="rgba(124,58,237,0.6)"/>
+        <rect x="30" y="6" width="4" height="8" rx="2" fill="rgba(124,58,237,0.6)"/>
+      </svg>
+      <span class="svc-num">01</span>
+      <h3 class="svc-title">Gestión Administrativa</h3>
+      <p class="svc-body">Operación diaria con protocolos documentados, SLAs auditables y seguimiento en tiempo real. Cada tarea tiene responsable, plazo y registro. Sin improvisación.</p>
+    </div>
+    <div class="svc-card reveal">
+      <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
+        <path d="M24 8L38 16V28C38 35 32 40 24 44C16 40 10 35 10 28V16L24 8Z" stroke="rgba(124,58,237,0.6)" stroke-width="1.5" fill="rgba(124,58,237,0.06)"/>
+        <path d="M18 24L22 28L30 20" stroke="rgba(124,58,237,0.8)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="svc-num">02</span>
+      <h3 class="svc-title">Servicio Jurídico</h3>
+      <p class="svc-body">Asesoría legal permanente bajo la Ley 284 de 2022. Contratos, reglamentos, notificaciones y gestión de conflictos — respaldados por criterio jurídico, no por intuición.</p>
+    </div>
+    <div class="svc-card reveal">
+      <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="14" width="32" height="24" rx="2" stroke="rgba(124,58,237,0.6)" stroke-width="1.5"/>
+        <line x1="16" y1="22" x2="32" y2="22" stroke="rgba(124,58,237,0.4)" stroke-width="1"/>
+        <line x1="16" y1="28" x2="26" y2="28" stroke="rgba(124,58,237,0.3)" stroke-width="1"/>
+        <rect x="20" y="8" width="8" height="8" rx="1" fill="rgba(124,58,237,0.5)" stroke="rgba(124,58,237,0.6)" stroke-width="1"/>
+        <line x1="24" y1="10" x2="24" y2="14" stroke="rgba(200,180,255,0.6)" stroke-width="1"/>
+      </svg>
+      <span class="svc-num">03</span>
+      <h3 class="svc-title">Gestión Contable</h3>
+      <p class="svc-body">Registros claros, cierres mensuales puntuales y estados financieros que la Junta entiende sin ser contadores. Las finanzas de su PH dejan de ser una caja negra.</p>
+    </div>
+    <div class="svc-card reveal">
+      <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="16" stroke="rgba(196,98,45,0.6)" stroke-width="1.5"/>
+        <path d="M24 14V26L30 30" stroke="rgba(196,98,45,0.8)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="24" cy="24" r="2" fill="rgba(196,98,45,0.8)"/>
+      </svg>
+      <span class="svc-num">04</span>
+      <h3 class="svc-title">Gestión de Morosidad</h3>
+      <p class="svc-body">La morosidad no se gestiona con llamadas incómodas. Se gestiona con un protocolo. Seguimiento sistemático, notificaciones formales y acciones legales cuando corresponde.</p>
+    </div>
+    <div class="svc-card reveal">
+      <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="10" y="8" width="28" height="36" rx="2" stroke="rgba(196,98,45,0.6)" stroke-width="1.5" fill="rgba(196,98,45,0.04)"/>
+        <line x1="16" y1="18" x2="32" y2="18" stroke="rgba(196,98,45,0.4)" stroke-width="1"/>
+        <line x1="16" y1="24" x2="32" y2="24" stroke="rgba(196,98,45,0.4)" stroke-width="1"/>
+        <line x1="16" y1="30" x2="24" y2="30" stroke="rgba(196,98,45,0.3)" stroke-width="1"/>
+        <path d="M28 28L36 36" stroke="rgba(196,98,45,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="36" cy="36" r="4" stroke="rgba(196,98,45,0.6)" stroke-width="1.5" fill="rgba(196,98,45,0.1)"/>
+      </svg>
+      <span class="svc-num">05</span>
+      <h3 class="svc-title">Actas & Document Factory</h3>
+      <p class="svc-body">Actas redactadas con rigor legal, firmadas y archivadas en tiempo definido. Document Factory centraliza toda la documentación del PH — accesible, trazable, sin versiones perdidas.</p>
+    </div>
+    <div class="svc-card reveal">
+      <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="28" width="6" height="14" rx="1" fill="rgba(196,98,45,0.6)"/>
+        <rect x="18" y="20" width="6" height="22" rx="1" fill="rgba(196,98,45,0.5)"/>
+        <rect x="28" y="14" width="6" height="28" rx="1" fill="rgba(196,98,45,0.7)"/>
+        <rect x="38" y="8" width="6" height="34" rx="1" fill="rgba(196,98,45,0.9)"/>
+        <line x1="8" y1="8" x2="44" y2="8" stroke="rgba(196,98,45,0.3)" stroke-width="0.8"/>
+        <polyline points="11,26 21,18 31,12 41,6" stroke="rgba(196,98,45,0.6)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <span class="svc-num">06</span>
+      <h3 class="svc-title">Reportes SLA Mensuales</h3>
+      <p class="svc-body">Cada mes, la Junta recibe tiempos de respuesta reales, incidencias abiertas y cerradas, y cumplimiento de compromisos. La transparencia no es un discurso — es un documento.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD SLA -->
+<section id="dashboard" class="section">
+  <div class="dashboard-grid">
+    <div>
+      <div class="section-label">Cómo rendimos cuentas</div>
+      <h2 class="section-title">Cada mes, un reporte.<br>Sin <em>excusas.</em></h2>
+      <p class="section-sub" style="margin-bottom:32px;">
+        Esto es lo que la Junta Directiva recibe cada 30 días: métricas reales,
+        tiempos de respuesta medidos, incidencias documentadas.
+        No un resumen narrativo — datos verificables.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <div style="width:3px;height:40px;background:var(--amethyst);flex-shrink:0;margin-top:4px;"></div>
+          <div>
+            <div style="font-family:var(--font-sans);font-size:13px;font-weight:500;color:var(--chalk);margin-bottom:4px;">SLAs auditables por categoría</div>
+            <div style="font-family:var(--font-sans);font-size:13px;font-weight:300;color:var(--chalk-42);">Urgente · Prioritario · Regular — cada plazo definido y medido</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <div style="width:3px;height:40px;background:var(--amethyst);flex-shrink:0;margin-top:4px;"></div>
+          <div>
+            <div style="font-family:var(--font-sans);font-size:13px;font-weight:500;color:var(--chalk);margin-bottom:4px;">Registro de incidencias en tiempo real</div>
+            <div style="font-family:var(--font-sans);font-size:13px;font-weight:300;color:var(--chalk-42);">Apertura, gestión y cierre — trazable y documentado</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <div style="width:3px;height:40px;background:var(--terra);flex-shrink:0;margin-top:4px;"></div>
+          <div>
+            <div style="font-family:var(--font-sans);font-size:13px;font-weight:500;color:var(--chalk);margin-bottom:4px;">Estado financiero claro</div>
+            <div style="font-family:var(--font-sans);font-size:13px;font-weight:300;color:var(--chalk-42);">Morosidad, cierres y balances — sin caja negra</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-panel reveal">
+      <div class="dp-header">
+        <span class="dp-title">Reporte SLA — Octubre 2024</span>
+        <span class="dp-badge">VERIFICADO</span>
+      </div>
+      <div class="dp-body">
+        <div class="dp-row">
+          <span class="dp-row-label">Cumplimiento SLA global</span>
+          <span class="dp-row-val green">97.4%</span>
+        </div>
+        <div class="dp-row">
+          <span class="dp-row-label">Tiempo respuesta urgente</span>
+          <span class="dp-row-val ame">&lt; 2 horas</span>
+        </div>
+        <div class="dp-row">
+          <span class="dp-row-label">Morosidad activa</span>
+          <span class="dp-row-val amber">3 unidades</span>
+        </div>
+        <div class="dp-row">
+          <span class="dp-row-label">Asambleas documentadas</span>
+          <span class="dp-row-val green">2 / 2</span>
+        </div>
+        <div class="dp-sla-bar">
+          <div class="dp-sla-label">
+            <span>SLA Urgente — 100%</span>
+            <span style="color:var(--amethyst)">✓</span>
+          </div>
+          <div class="dp-bar-track"><div class="dp-bar-fill" style="width:100%;animation-delay:0.2s"></div></div>
+        </div>
+        <div class="dp-sla-bar">
+          <div class="dp-sla-label">
+            <span>SLA Prioritario — 96%</span>
+            <span style="color:#4ADE80">✓</span>
+          </div>
+          <div class="dp-bar-track"><div class="dp-bar-fill" style="width:96%;animation-delay:0.5s"></div></div>
+        </div>
+        <div class="dp-sla-bar">
+          <div class="dp-sla-label">
+            <span>SLA Regular — 94%</span>
+            <span style="color:#FBBF24">~</span>
+          </div>
+          <div class="dp-bar-track"><div class="dp-bar-fill" style="width:94%;animation-delay:0.8s"></div></div>
+        </div>
+        <div class="dp-incidents">
+          <div class="dp-inc-card">
+            <span class="dp-inc-num" style="color:#4ADE80">24</span>
+            <span class="dp-inc-label">Incidencias cerradas</span>
+          </div>
+          <div class="dp-inc-card">
+            <span class="dp-inc-num" style="color:#FBBF24">3</span>
+            <span class="dp-inc-label">En seguimiento</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROPERTIES -->
+<section id="propiedades" class="section">
+  <div class="props-layout">
+    <div>
+      <div class="section-label">Propiedades activas</div>
+      <h2 class="section-title">7 propiedades.<br>Un solo <em>estándar.</em></h2>
+      <p class="section-sub" style="margin-bottom:40px;">
+        No hay clientes de primera y de segunda. El protocolo es el mismo
+        en la unidad 1 y en la unidad 1.500.
+      </p>
+      <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:440px;">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle cx="200" cy="150" r="28" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.8)" stroke-width="1.5" filter="url(#glow)"/>
+        <text x="200" y="146" text-anchor="middle" fill="rgba(200,180,255,0.9)" font-family="Cinzel,serif" font-size="7" letter-spacing="2">FORUM</text>
+        <text x="200" y="158" text-anchor="middle" fill="rgba(200,180,255,0.9)" font-family="Cinzel,serif" font-size="7" letter-spacing="2">PHs</text>
+        <g stroke="rgba(124,58,237,0.25)" stroke-width="1" stroke-dasharray="4,3">
+          <line x1="200" y1="122" x2="200" y2="58"/>
+          <line x1="228" y1="136" x2="320" y2="88"/>
+          <line x1="228" y1="164" x2="320" y2="212"/>
+          <line x1="200" y1="178" x2="200" y2="242"/>
+          <line x1="172" y1="164" x2="80" y2="212"/>
+          <line x1="172" y1="136" x2="80" y2="88"/>
+          <line x1="232" y1="150" x2="340" y2="150"/>
+        </g>
+        <g fill="rgba(28,25,38,0.95)" stroke="rgba(124,58,237,0.5)" stroke-width="1">
+          <circle cx="200" cy="46" r="20"/>
+          <circle cx="330" cy="80" r="20"/>
+          <circle cx="330" cy="220" r="20"/>
+          <circle cx="200" cy="254" r="20"/>
+          <circle cx="70" cy="220" r="20"/>
+          <circle cx="70" cy="80" r="20"/>
+          <circle cx="352" cy="150" r="20"/>
+        </g>
+        <g fill="rgba(200,180,255,0.7)" font-family="DM Sans,sans-serif" font-size="7" text-anchor="middle">
+          <text x="200" y="50">P-01</text>
+          <text x="330" y="84">P-02</text>
+          <text x="330" y="224">P-03</text>
+          <text x="200" y="258">P-04</text>
+          <text x="70" y="224">P-05</text>
+          <text x="70" y="84">P-06</text>
+          <text x="352" y="154">P-07</text>
+        </g>
+        <circle cx="200" cy="150" r="28" fill="none" stroke="rgba(124,58,237,0.3)" stroke-width="1">
+          <animate attributeName="r" values="28;48;28" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;0;0.6" dur="3s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+
+    <div class="prop-nodes">
+      <div class="prop-node reveal">
+        <div class="prop-node-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="3" y="5" width="12" height="11" rx="1" stroke="rgba(124,58,237,0.8)" stroke-width="1"/>
+            <line x1="3" y1="8" x2="15" y2="8" stroke="rgba(124,58,237,0.5)" stroke-width="0.8"/>
+            <rect x="7" y="11" width="4" height="5" fill="rgba(124,58,237,0.4)"/>
+          </svg>
+        </div>
+        <div class="prop-node-info">
+          <div class="prop-node-name">Torre Residencial · Ciudad de Panamá</div>
+          <div class="prop-node-meta">Gestionando desde 2019 · Bajo Ley 284</div>
+        </div>
+        <div class="prop-node-units">280u</div>
+      </div>
+      <div class="prop-node reveal">
+        <div class="prop-node-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="3" y="5" width="12" height="11" rx="1" stroke="rgba(196,98,45,0.8)" stroke-width="1"/>
+            <line x1="3" y1="8" x2="15" y2="8" stroke="rgba(196,98,45,0.5)" stroke-width="0.8"/>
+            <rect x="7" y="11" width="4" height="5" fill="rgba(196,98,45,0.4)"/>
+          </svg>
+        </div>
+        <div class="prop-node-info">
+          <div class="prop-node-name">PH Residencial · San Francisco</div>
+          <div class="prop-node-meta">48 unidades · Administración integral</div>
+        </div>
+        <div class="prop-node-units" style="color:var(--terra)">48u</div>
+      </div>
+      <div class="prop-node reveal">
+        <div class="prop-node-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="3" y="5" width="12" height="11" rx="1" stroke="rgba(124,58,237,0.8)" stroke-width="1"/>
+            <line x1="3" y1="8" x2="15" y2="8" stroke="rgba(124,58,237,0.5)" stroke-width="0.8"/>
+            <rect x="7" y="11" width="4" height="5" fill="rgba(124,58,237,0.4)"/>
+          </svg>
+        </div>
+        <div class="prop-node-info">
+          <div class="prop-node-name">Conjunto Residencial · Costa del Este</div>
+          <div class="prop-node-meta">Gestión de morosidad · SLA activo</div>
+        </div>
+        <div class="prop-node-units">196u</div>
+      </div>
+      <div class="prop-node reveal">
+        <div class="prop-node-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <rect x="3" y="5" width="12" height="11" rx="1" stroke="rgba(196,98,45,0.8)" stroke-width="1"/>
+            <line x1="3" y1="8" x2="15" y2="8" stroke="rgba(196,98,45,0.5)" stroke-width="0.8"/>
+            <rect x="7" y="11" width="4" height="5" fill="rgba(196,98,45,0.4)"/>
+          </svg>
+        </div>
+        <div class="prop-node-info">
+          <div class="prop-node-name">4 propiedades adicionales</div>
+          <div class="prop-node-meta">Panamá · Bajo gestión ForumPHs</div>
+        </div>
+        <div class="prop-node-units" style="color:var(--terra)">976u</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonios" class="section">
+  <div class="section-label">Lo que dicen las Juntas</div>
+  <h2 class="section-title" style="margin-bottom:64px;">No pedimos que confíe<br>en nuestra palabra.</h2>
+
+  <div class="testi-grid">
+    <div class="testi-item reveal">
+      <div class="testi-meta">
+        <span class="testi-name">RODRIGO M.</span>
+        <span class="testi-role">Presidente de Junta Directiva<br>Torre Residencial · Ciudad de Panamá</span>
+        <span class="testi-since">Desde 2019</span>
+      </div>
+      <blockquote class="testi-quote">
+        Durante dos años tuvimos morosidad sin control y asambleas que terminaban en discusiones.
+        Desde que ForumPHs asumió la administración, los reportes llegan puntuales,
+        los propietarios pagan y las actas se firman sin drama.
+      </blockquote>
+    </div>
+
+    <div class="testi-item reveal">
+      <div class="testi-meta">
+        <span class="testi-name">LUCÍA F.</span>
+        <span class="testi-role">Secretaria de Junta Directiva<br>PH Residencial · San Francisco</span>
+        <span class="testi-since">Cliente activa</span>
+      </div>
+      <blockquote class="testi-quote">
+        Lo que más valoramos es que no cambia el estándar según el tamaño del edificio.
+        Tenemos 48 unidades y recibimos exactamente el mismo nivel de atención
+        que propiedades tres veces más grandes. Eso no es común en Panamá.
+      </blockquote>
+    </div>
+
+    <div class="testi-item reveal">
+      <div class="testi-meta">
+        <span class="testi-name">CARLOS A.</span>
+        <span class="testi-role">Tesorero<br>Conjunto Residencial · Costa del Este</span>
+        <span class="testi-since">Cliente activo</span>
+      </div>
+      <blockquote class="testi-quote">
+        El respaldo legal marca la diferencia. Ivette y su equipo conocen la Ley 284 a fondo.
+        Cuando tuvimos que ejecutar cobros a propietarios morosos, el proceso fue limpio,
+        documentado y efectivo. Sin improvisación.
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="section">
+  <div class="faq-header">
+    <div class="section-label">Preguntas frecuentes</div>
+    <h2 class="section-title">Lo que la mayoría de Juntas<br>pregunta antes de <em>decidir.</em></h2>
+    <p class="section-sub" style="margin-bottom:0;">
+      Si su comunidad todavía tiene estas dudas sin respuesta, cada semana que pasa tiene un costo real.
+    </p>
+  </div>
+
+  <div class="faq-list">
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Qué diferencia a ForumPHs de cualquier otro administrador de edificios en Panamá?</p>
+      <p class="faq-a">La mayoría de administradores reacciona. ForumPHs opera con un sistema. Cada propiedad que administramos — sin excepción — recibe el mismo estándar: SLAs auditables, reportes mensuales verificables y respaldo jurídico activo de nuestra Gerente General, la Abogada Ivette Flores. No existe un cliente de segunda categoría en nuestro portafolio. <strong>Si su administrador actual no le puede mostrar un reporte de cumplimiento mensual, ya tiene su respuesta.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Qué marco legal regula la administración de nuestra propiedad horizontal?</p>
+      <p class="faq-a">En Panamá, la Ley 284 de 2022 establece las obligaciones y derechos de propietarios, Juntas Directivas y administradores. ForumPHs opera en cumplimiento estricto de esta ley. Más importante: la interpretamos y la aplicamos activamente — no la usamos solo como defensa cuando ya hay un conflicto. <strong>Su Junta Directiva merece un aliado que conozca la norma antes de que el problema llegue, no después.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">Tenemos problemas serios de morosidad. ¿Cómo los maneja ForumPHs?</p>
+      <p class="faq-a">La morosidad no es un problema de comunicación — es un problema de sistema. ForumPHs la gestiona con un protocolo estructurado que combina seguimiento administrativo, gestión de cobro y, cuando corresponde, acción jurídica directa. Cada caso tiene un estado documentado. Ninguna unidad en mora queda sin seguimiento activo. <strong>Si hoy su administrador no le puede decir exactamente en qué etapa está cada deudor, su fondo de mantenimiento está en riesgo.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Cómo funciona el sistema de SLAs y por qué importa?</p>
+      <p class="faq-a">Un SLA es un compromiso con tiempo de respuesta definido y auditable. En ForumPHs operamos con tres niveles: <span class="accent">Urgente</span> (respuesta inmediata), <span class="accent">Prioritario</span> (respuesta en horas) y <span class="accent">Regular</span> (respuesta en días hábiles). Cada mes recibe un reporte que muestra el cumplimiento real de esos compromisos. <strong>Si su administrador actual no tiene SLAs escritos, no tiene administración: tiene improvisación.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Qué incluye exactamente el servicio de gestión contable?</p>
+      <p class="faq-a">Gestión de ingresos y egresos, control del fondo de mantenimiento, registro de pagos por unidad, y reportes contables periódicos que cualquier propietario puede auditar. La contabilidad de su PH no es un archivo que aparece cuando hay una asamblea — es un registro vivo, actualizado y transparente. <strong>Una Junta Directiva que no tiene visibilidad financiera en tiempo real no administra: espera que los problemas aparezcan solos.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Las Actas de Asamblea y la documentación legal quedan respaldadas?</p>
+      <p class="faq-a">Sí. A través de nuestro servicio Document Factory, cada Acta de Asamblea, acuerdo y documento relevante queda redactado, archivado y disponible. En una disputa legal o una auditoría, la documentación es la diferencia entre una comunidad protegida y una expuesta. <strong>ForumPHs garantiza que su PH tenga ese respaldo organizado y accesible — no en una carpeta que nadie sabe dónde está.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Cuánto tiempo lleva hacer el cambio de administradora?</p>
+      <p class="faq-a">El proceso de transición está diseñado para no interrumpir la operación de su propiedad. ForumPHs coordina la recepción de documentación, estados de cuenta y contratos vigentes con un protocolo de traspaso estructurado. La mayoría de comunidades que postergan el cambio lo hacen por miedo al proceso — no por satisfacción con su administrador actual. <strong>Si ya sabe que algo no está funcionando, cada mes que espera es un mes de gestión deficiente que su patrimonio está absorbiendo.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">¿Cómo iniciamos el proceso con ForumPHs?</p>
+      <p class="faq-a">El primer paso es una evaluación de su propiedad. Sin compromiso, sin costo. Analizamos la situación actual de su PH — administrativa, contable y legal — y le presentamos un diagnóstico claro. A partir de ahí, usted decide. Lo que no cambia después de esa conversación es que ya tendrá información concreta para tomar una decisión fundamentada. <strong>Eso, su administrador actual probablemente nunca se lo ofreció.</strong></p>
+    </div>
+
+  </div>
+
+  <div class="faq-cta-block reveal">
+    <span class="faq-cta-label">¿Su pregunta no está aquí?</span>
+    <h3 class="faq-cta-title">Hable directamente con nuestro equipo.<br>Sin formularios genéricos, sin respuestas automáticas.</h3>
+    <p class="faq-cta-sub">La consulta la atiende una abogada, no un vendedor.</p>
+    <a href="#contacto" class="btn-primary">Solicitar diagnóstico gratuito →</a>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-bg-text">SISTEMA</div>
+  <div class="cta-inner">
+    <div class="section-label" style="justify-content:center;margin-bottom:32px;">El siguiente paso</div>
+    <h2 class="cta-title">
+      Su PH ya tiene suficientes problemas<br>
+      sin un sistema. <em>Cambiemos eso hoy.</em>
+    </h2>
+    <p class="cta-sub">
+      Diagnóstico inicial gratuito. Sin compromiso. Evaluamos el estado actual de su
+      Propiedad Horizontal y le presentamos qué requiere atención inmediata.
+      La consulta la hace una abogada, no un vendedor.
+    </p>
+    <div class="cta-actions">
+      <a href="#contacto" class="btn-primary">Solicitar diagnóstico gratuito →</a>
+      <a href="tel:+507" class="btn-ghost">O llámenos directamente</a>
+    </div>
+    <div style="margin-top:48px;font-family:var(--font-sans);font-size:11px;letter-spacing:0.20em;text-transform:uppercase;color:var(--chalk-42);">
+      forumphs.com &nbsp;·&nbsp; Panamá &nbsp;·&nbsp; Bajo Ley 284 de 2022 &nbsp;·&nbsp; Desde 2015
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contacto" class="section">
+  <div class="contact-grid">
+
+    <!-- Left col — info -->
+    <div class="contact-info">
+      <div class="section-label" style="margin-bottom:0;">Contacto</div>
+      <h2 class="section-title" style="margin-bottom:0;">
+        La conversación<br>empieza <em>aquí.</em>
+      </h2>
+      <p style="font-family:var(--font-sans);font-size:15px;font-weight:300;color:var(--chalk-72);line-height:1.7;">
+        Cada mes sin un sistema es un mes de cuotas sin cobrar, asambleas sin actas y propietarios sin respuestas.
+      </p>
+
+      <div class="contact-brand">
+        <span class="wm wm-xs"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
+        <p class="contact-brand-line">Administración de Propiedad Horizontal</p>
+        <p class="contact-brand-sub">Panamá · Desde 2015 · Ley 284 de 2022</p>
+      </div>
+
+      <div class="contact-items">
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amethyst)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.59a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/></svg>
+          </div>
+          <div>
+            <span class="contact-item-label">Teléfono</span>
+            <a href="tel:+50700000000" class="contact-item-val">+507 000-0000</a>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amethyst)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div>
+            <span class="contact-item-label">Correo</span>
+            <a href="mailto:info@forumphs.com" class="contact-item-val">info@forumphs.com</a>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amethyst)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 13-8 13S4 15.25 4 10a8 8 0 0 1 8-8z"/></svg>
+          </div>
+          <div>
+            <span class="contact-item-label">Ubicación</span>
+            <span class="contact-item-val">Ciudad de Panamá, Panamá</span>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amethyst)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <span class="contact-item-label">Horario</span>
+            <span class="contact-item-val">Lun–Vie · 8:00 am – 5:00 pm</span>
+            <span class="contact-item-note">Urgencias: respuesta inmediata vía SLA</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-rep">
+        <span class="contact-rep-label">Representante Legal</span>
+        <p class="contact-rep-name">Ivette Flores</p>
+        <p class="contact-rep-title">Abogada · Gerente General · ForumPHs</p>
+      </div>
+    </div>
+
+    <!-- Right col — form -->
+    <div class="contact-form-wrap">
+      <span class="form-header-label">Solicite una evaluación</span>
+      <p class="form-header-sub">Sin compromiso. Con criterio. En menos de 24 horas hábiles tiene una respuesta.</p>
+
+      <form class="contact-form" action="#" method="POST">
+        <div class="form-field">
+          <label class="form-label" for="c-name">Nombre completo</label>
+          <input class="form-input" type="text" id="c-name" name="nombre" placeholder="Su nombre" required>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="c-email">Correo electrónico</label>
+          <input class="form-input" type="email" id="c-email" name="correo" placeholder="correo@ejemplo.com" required>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="c-phone">Teléfono</label>
+          <input class="form-input" type="tel" id="c-phone" name="telefono" placeholder="+507 000-0000">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="c-property">Nombre de la propiedad horizontal</label>
+          <input class="form-input" type="text" id="c-property" name="propiedad" placeholder="Ej: Edificio Torre Central">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="c-role">Su rol en la propiedad</label>
+          <select class="form-select" id="c-role" name="rol">
+            <option value="" disabled selected>Seleccione una opción</option>
+            <option value="presidente">Presidente de Junta Directiva</option>
+            <option value="directivo">Miembro de Junta Directiva</option>
+            <option value="propietario">Propietario</option>
+            <option value="administrador">Administrador actual</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="c-message">¿Cuál es su situación actual?</label>
+          <textarea class="form-textarea" id="c-message" name="mensaje" rows="4" placeholder="Cuéntenos qué está pasando en su propiedad. Cuantos más detalles, mejor preparados llegamos."></textarea>
+        </div>
+
+        <button type="submit" class="form-submit">
+          Solicitar evaluación — respondemos en menos de 24 h
+        </button>
+
+        <p class="form-note">
+          Sus datos son confidenciales. No hay compromiso de contratación en esta primera conversación.
+        </p>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <span class="wm wm-sm"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
+    <span class="footer-tagline">Administración de Propiedad Horizontal · Panamá</span>
+  </div>
+  <div class="footer-right">
+    <div class="footer-credit">
+      DESIGNED &amp; DEVELOPED BY <strong>UNREAL&gt;ILLE STUDIO</strong><br>
+      1303 N 46TH AVE &nbsp;·&nbsp; HOLLYWOOD, FL 33021
+    </div>
+  </div>
+</footer>
+
+<script>
+// Nav border on scroll
+window.addEventListener('scroll', function() {
+  var nav = document.getElementById('main-nav');
+  nav.style.borderBottomColor = window.scrollY > 60 ? 'rgba(249,248,255,0.10)' : 'rgba(249,248,255,0.06)';
+}, { passive: true });
+
+// Reveal on scroll
+var revealEls = document.querySelectorAll('.reveal');
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.10, rootMargin: '0px 0px -30px 0px' });
+revealEls.forEach(function(el) { observer.observe(el); });
+
+// SLA bars animate on scroll
+var barObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.querySelectorAll('.dp-bar-fill').forEach(function(bar) {
+        bar.style.animationPlayState = 'running';
+      });
+    }
+  });
+}, { threshold: 0.3 });
+var panel = document.querySelector('.dashboard-panel');
+if (panel) {
+  panel.querySelectorAll('.dp-bar-fill').forEach(function(bar) {
+    bar.style.animationPlayState = 'paused';
+  });
+  barObserver.observe(panel);
+}
+</script>
+
+</body>
+</html>
