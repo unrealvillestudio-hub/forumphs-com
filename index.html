@@ -1431,7 +1431,7 @@ footer {
       <span class="form-header-label">Solicite una evaluación</span>
       <p class="form-header-sub">Sin compromiso. Con criterio. En menos de 24 horas hábiles tiene una respuesta.</p>
 
-      <form class="contact-form" action="#" method="POST">
+      <form class="contact-form" action="/api/contact" method="POST">
         <div class="form-field">
           <label class="form-label" for="c-name">Nombre completo</label>
           <input class="form-input" type="text" id="c-name" name="nombre" placeholder="Su nombre" required>
@@ -1503,6 +1503,19 @@ window.addEventListener('scroll', function() {
   var nav = document.getElementById('main-nav');
   nav.style.borderBottomColor = window.scrollY > 60 ? 'rgba(249,248,255,0.10)' : 'rgba(249,248,255,0.06)';
 }, { passive: true });
+
+// Form sent confirmation
+if (window.location.search.includes('enviado=1')) {
+  var form = document.querySelector('.contact-form');
+  if (form) {
+    form.innerHTML = '<div style="text-align:center;padding:48px 0;">' +
+      '<div style="width:52px;height:52px;border-radius:50%;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px;">✓</div>' +
+      '<p style="font-family:var(--font-serif);font-size:1.4rem;color:var(--chalk);margin-bottom:10px;">Mensaje recibido.</p>' +
+      '<p style="font-family:var(--font-sans);font-size:13px;color:var(--chalk-42);line-height:1.7;">Le responderemos en menos de 24 horas hábiles.<br>Revise también su carpeta de spam.</p>' +
+      '</div>';
+  }
+  history.replaceState({}, '', window.location.pathname);
+}
 
 // Reveal on scroll
 var revealEls = document.querySelectorAll('.reveal');
