@@ -741,6 +741,39 @@ footer {
   footer { padding:40px 24px; }
   #cta { padding:80px 24px; }
 }
+
+/* ── BI QUOTES ── */
+.bi-quotes-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:2px; margin-top:64px; }
+@media(max-width:860px){ .bi-quotes-grid{ grid-template-columns:1fr; } }
+.bi-quote {
+  background:var(--carbon); border:1px solid var(--chalk-06);
+  padding:44px 38px; position:relative; transition:border-color .4s ease, background .4s ease;
+}
+.bi-quote:hover { border-color:var(--ame-glow); background:var(--graphite); }
+.bi-quote::before {
+  content:''; position:absolute; top:0; left:0; width:2px; height:0;
+  background:var(--terra); transition:height .5s ease;
+}
+.bi-quote:hover::before { height:100%; }
+.bi-q-tag {
+  font-family:var(--font-sans); font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--terra); margin-bottom:20px; display:block; font-weight:500;
+}
+.bi-q-hook {
+  font-family:var(--font-serif); font-size:25px; line-height:1.32; color:var(--chalk);
+  margin-bottom:18px; font-weight:400;
+}
+.bi-q-hook em { color:var(--gold); font-style:italic; }
+.bi-q-body {
+  font-family:var(--font-sans); font-size:14px; font-weight:300; line-height:1.72;
+  color:var(--chalk-72);
+}
+.bi-q-body strong { color:var(--chalk); font-weight:500; }
+.bi-q-metric {
+  margin-top:24px; padding-top:20px; border-top:1px solid var(--chalk-06);
+  font-family:var(--font-sans); font-size:12px; color:var(--chalk-42); letter-spacing:.04em;
+}
+.bi-q-metric span { color:var(--amethyst); font-weight:500; }
 </style>
 </head>
 <body>
@@ -749,12 +782,13 @@ footer {
 <nav id="main-nav">
   <div class="nav-brand">
     <span class="wm wm-nav"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
-    <span class="nav-sub">Administración · Panamá · Ley 284</span>
+    <span class="nav-sub">Administración · Panamá · Régimen de PH</span>
   </div>
   <div class="nav-links">
     <a href="#about" class="nav-link">Nosotros</a>
     <a href="#servicios" class="nav-link">Servicios</a>
     <a href="#dashboard" class="nav-link">Cómo funciona</a>
+    <a href="#inteligencia" class="nav-link">Inteligencia</a>
     <a href="#testimonios" class="nav-link">Clientes</a>
     <a href="#faq" class="nav-link">Preguntas</a>
     <a href="#contacto" class="nav-cta">Diagnóstico gratuito</a>
@@ -770,15 +804,15 @@ footer {
     </div>
 
     <h1 class="hero-title">
-      Su propiedad merece<br>
-      un sistema, <em>no</em><br>
-      un intermediario.
+      Construiste tu patrimonio.<br>
+      Nosotros le construimos<br>
+      un <em>sistema.</em>
     </h1>
 
     <p class="hero-body">
-      ForumPHs administra más de 1.500 unidades en Panamá con SLAs auditables,
-      respaldo jurídico y reportes mensuales que rinden cuentas — no excusas.
-      Bajo Ley 284 de 2022.
+      ForumPHs administra ~1.500 unidades en Panamá con criterio jurídico especializado,
+      inteligencia financiera propia y reportes que la Junta puede auditar.
+      Bajo el Régimen de Propiedad Horizontal.
     </p>
 
     <div class="hero-actions">
@@ -792,12 +826,12 @@ footer {
         <span class="trust-label">Unidades gestionadas</span>
       </div>
       <div class="trust-stat">
-        <span class="trust-num">7</span>
-        <span class="trust-label">Propiedades activas</span>
+        <span class="trust-num">8</span>
+        <span class="trust-label">PH activos</span>
       </div>
       <div class="trust-stat">
-        <span class="trust-num">10</span>
-        <span class="trust-label">Años de trayectoria</span>
+        <span class="trust-num">+10</span>
+        <span class="trust-label">Años de oficio</span>
       </div>
     </div>
   </div>
@@ -806,7 +840,7 @@ footer {
   <div class="hero-right">
     <div class="building-wrap">
       <div class="data-badge" style="top:12%;right:-8%">SLA AUDITABLES</div>
-      <div class="data-badge" style="top:38%;left:-12%">LEY 284 · 2022</div>
+      <div class="data-badge" style="top:38%;left:-12%">RÉGIMEN DE PH</div>
       <div class="data-badge" style="bottom:28%;right:-10%">REPORTE MENSUAL</div>
       <div class="data-badge" style="bottom:10%;left:-5%">GESTIÓN JURÍDICA</div>
 
@@ -900,29 +934,33 @@ footer {
   <div class="about-grid">
     <div>
       <div class="section-label">Quiénes somos</div>
-      <h2 class="section-title">Diez años mirando<br>lo que nadie<br>quería <em>ver.</em></h2>
+      <h2 class="section-title">Más de una década<br>mirando lo que nadie<br>quería <em>ver.</em></h2>
       <p class="about-body">
-        En 2015, ForumPHs nació de una constatación incómoda: la mayoría de las Propiedades
-        Horizontales en Panamá no tenían un administrador —
-        <strong>tenían un intermediario sin rendición de cuentas.</strong>
+        El oficio de administrar Propiedad Horizontal se formó cuando un PH era un bloque
+        pequeño con una bomba y un portón. <strong>El edificio de hoy ya no es ese —
+        y el método no evolucionó con el activo.</strong>
       </p>
       <p class="about-body">
-        Cuotas sin destino claro. Asambleas sin actas. Morosidad que nadie perseguía.
-        Y Juntas Directivas que cargaban solas con decisiones que requerían criterio
-        jurídico, contable y operativo al mismo tiempo.
+        Cuotas sin destino claro. Asambleas sin actas. Morosidad sin protocolo.
+        Y Juntas Directivas que cargan solas con decisiones que requieren criterio
+        jurídico, contable y financiero al mismo tiempo.
+      </p>
+      <p class="about-body">
+        ForumPHs nació para cerrar esa brecha: tratar cada edificio como lo que es,
+        un patrimonio colectivo que merece un sistema.
       </p>
       <p class="about-detail">
-        Hoy gestionamos ~1.500 unidades en 7 propiedades.<br>
-        El mismo estándar para cada una. Sin excepción.
+        Hoy gestionamos ~1.500 unidades en 8 PH activos.<br>
+        El mismo estándar para cada uno. Sin excepción.
       </p>
     </div>
 
     <div class="ivette-card">
-      <img src="./ivette.webp" alt="Ivette Flores — Abogada · Gerente General · ForumPHs"
+      <img src="./ivette.webp" alt="Ivette Flores — Abogada · Especialista en Régimen de Propiedad Horizontal · ForumPHs"
            style="width:100%;aspect-ratio:4/3;object-fit:cover;object-position:80% top;
                   margin-bottom:28px;border-radius:2px;display:block;">
       <div class="ivette-name">IVETTE FLORES</div>
-      <div class="ivette-title">Abogada · Gerente General</div>
+      <div class="ivette-title">Abogada · Especialista en Régimen de Propiedad Horizontal</div>
       <div class="ivette-quote">
         "Administrar sin criterio jurídico no es administrar — es postergar problemas.
         Cada propiedad que firmamos es un compromiso de sistema, no de intención."
@@ -961,7 +999,7 @@ footer {
       </svg>
       <span class="svc-num">02</span>
       <h3 class="svc-title">Servicio Jurídico</h3>
-      <p class="svc-body">Asesoría legal permanente bajo la Ley 284 de 2022. Contratos, reglamentos, notificaciones y gestión de conflictos — respaldados por criterio jurídico, no por intuición.</p>
+      <p class="svc-body">Asesoría legal permanente bajo el Régimen de Propiedad Horizontal. Contratos, reglamentos, notificaciones y gestión de conflictos — respaldados por criterio jurídico especializado.</p>
     </div>
     <div class="svc-card reveal">
       <svg class="svc-icon" viewBox="0 0 48 48" fill="none">
@@ -1052,7 +1090,7 @@ footer {
 
     <div class="dashboard-panel reveal">
       <div class="dp-header">
-        <span class="dp-title">Reporte SLA — Octubre 2024</span>
+        <span class="dp-title">Reporte SLA — Último período</span>
         <span class="dp-badge">VERIFICADO</span>
       </div>
       <div class="dp-body">
@@ -1109,11 +1147,76 @@ footer {
 </section>
 
 <!-- PROPERTIES -->
+
+<!-- BI QUOTES -->
+<section id="inteligencia" class="section">
+  <div class="section-label">Inteligencia financiera</div>
+  <h2 class="section-title">Cuatro preguntas que<br>casi nadie <em>calcula.</em></h2>
+  <p class="section-sub" style="max-width:720px;margin-top:24px;">
+    Un informe de ingresos y gastos dice qué pasó. No dice si el edificio resiste lo que viene.
+    Estas son las lecturas que produce nuestro sistema de inteligencia financiera — y que
+    la mayoría de las administraciones no genera.
+  </p>
+
+  <div class="bi-quotes-grid">
+
+    <div class="bi-quote reveal">
+      <span class="bi-q-tag">Liquidez operativa</span>
+      <p class="bi-q-hook">Si dejara de entrar dinero mañana, <em>¿cuántos meses aguantaría su edificio?</em></p>
+      <p class="bi-q-body">
+        El mínimo sano son tres meses de cobertura. Hay PH operando con poco más de uno
+        sin que nadie lo haya notado, porque la cuota sigue entrando puntual cada mes.
+        <strong>Ingreso estable no es lo mismo que caja estable.</strong>
+      </p>
+      <div class="bi-q-metric">Cobertura mínima recomendada · <span>3 meses</span></div>
+    </div>
+
+    <div class="bi-quote reveal">
+      <span class="bi-q-tag">Reservas capitales</span>
+      <p class="bi-q-hook">Una cuota que nunca sube <em>no siempre es buena noticia.</em></p>
+      <p class="bi-q-body">
+        Todo edificio tiene un calendario de gastos mayores que ya existe: bombas, elevadores,
+        pintura, fachada. Si no se aparta nada, ese gasto no desaparece —
+        <strong>llega junto, como una cuota extraordinaria de varios cientos de dólares por unidad.</strong>
+      </p>
+      <div class="bi-q-metric">Capex típico a cinco años · <span>$280K – $480K</span></div>
+    </div>
+
+    <div class="bi-quote reveal">
+      <span class="bi-q-tag">Morosidad con aging</span>
+      <p class="bi-q-hook">Una mora "bajo control" puede ser <em>casi un mes de operación inmovilizado.</em></p>
+      <p class="bi-q-body">
+        El problema no es cuánto se debe: es desde cuándo. La cartera vencida a más de sesenta días
+        tiene una recuperación espontánea de uno de cada cinco casos.
+        <strong>Lo que no se cobra a tiempo lo terminan pagando los que sí pagan.</strong>
+      </p>
+      <div class="bi-q-metric">Recuperación espontánea a +60 días · <span>20%</span></div>
+    </div>
+
+    <div class="bi-quote reveal">
+      <span class="bi-q-tag">Costo real por unidad</span>
+      <p class="bi-q-hook">¿Cuánto cuesta operar una unidad, <em>y cuánto paga esa unidad?</em></p>
+      <p class="bi-q-body">
+        Cuando el costo supera a la cuota, la diferencia no es un mal mes: es el modelo,
+        repetido cada mes del año.
+        <strong>Una cuota por debajo del costo no ahorra dinero al propietario — es una deuda del edificio consigo mismo.</strong>
+      </p>
+      <div class="bi-q-metric">Brecha estructural detectable desde · <span>el primer cierre</span></div>
+    </div>
+
+  </div>
+
+  <p class="section-sub" style="max-width:760px;margin-top:56px;text-align:center;margin-left:auto;margin-right:auto;">
+    Su edificio ya tiene estas respuestas. La pregunta es si alguien las está calculando.
+  </p>
+</section>
+
+<!-- PROPIEDADES -->
 <section id="propiedades" class="section">
   <div class="props-layout">
     <div>
       <div class="section-label">Propiedades activas</div>
-      <h2 class="section-title">7 propiedades.<br>Un solo <em>estándar.</em></h2>
+      <h2 class="section-title">8 PH activos.<br>Un solo <em>estándar.</em></h2>
       <p class="section-sub" style="margin-bottom:40px;">
         No hay clientes de primera y de segunda. El protocolo es el mismo
         en la unidad 1 y en la unidad 1.500.
@@ -1173,7 +1276,7 @@ footer {
         </div>
         <div class="prop-node-info">
           <div class="prop-node-name">Torre Residencial · Ciudad de Panamá</div>
-          <div class="prop-node-meta">Gestionando desde 2019 · Bajo Ley 284</div>
+          <div class="prop-node-meta">Gestionando desde 2019 · Bajo Régimen de PH</div>
         </div>
         <div class="prop-node-units">280u</div>
       </div>
@@ -1214,7 +1317,7 @@ footer {
           </svg>
         </div>
         <div class="prop-node-info">
-          <div class="prop-node-name">4 propiedades adicionales</div>
+          <div class="prop-node-name">5 PH adicionales</div>
           <div class="prop-node-meta">Panamá · Bajo gestión ForumPHs</div>
         </div>
         <div class="prop-node-units" style="color:var(--terra)">976u</div>
@@ -1262,7 +1365,7 @@ footer {
         <span class="testi-since">Cliente activo</span>
       </div>
       <blockquote class="testi-quote">
-        El respaldo legal marca la diferencia. Ivette y su equipo conocen la Ley 284 a fondo.
+        El respaldo legal marca la diferencia. Ivette y su equipo conocen el Régimen de Propiedad Horizontal a fondo.
         Cuando tuvimos que ejecutar cobros a propietarios morosos, el proceso fue limpio,
         documentado y efectivo. Sin improvisación.
       </blockquote>
@@ -1284,27 +1387,27 @@ footer {
 
     <div class="faq-item reveal">
       <p class="faq-q">¿Qué diferencia a ForumPHs de cualquier otro administrador de edificios en Panamá?</p>
-      <p class="faq-a">La mayoría de administradores reacciona. ForumPHs opera con un sistema. Cada propiedad que administramos — sin excepción — recibe el mismo estándar: SLAs auditables, reportes mensuales verificables y respaldo jurídico activo de nuestra Gerente General, la Abogada Ivette Flores. No existe un cliente de segunda categoría en nuestro portafolio. <strong>Si su administrador actual no le puede mostrar un reporte de cumplimiento mensual, ya tiene su respuesta.</strong></p>
+      <p class="faq-a">ForumPHs opera con un sistema. Cada propiedad que administramos — sin excepción — recibe el mismo estándar: SLAs auditables, reportes mensuales verificables y respaldo jurídico activo de la Abogada Ivette Flores, Especialista en Régimen de Propiedad Horizontal. No existe un cliente de segunda categoría en nuestro portafolio. <strong>El reporte de cumplimiento mensual es el mínimo verificable de una administración profesional: si existe, se puede auditar; si no, no hay nada que medir.</strong></p>
     </div>
 
     <div class="faq-item reveal">
       <p class="faq-q">¿Qué marco legal regula la administración de nuestra propiedad horizontal?</p>
-      <p class="faq-a">En Panamá, la Ley 284 de 2022 establece las obligaciones y derechos de propietarios, Juntas Directivas y administradores. ForumPHs opera en cumplimiento estricto de esta ley. Más importante: la interpretamos y la aplicamos activamente — no la usamos solo como defensa cuando ya hay un conflicto. <strong>Su Junta Directiva merece un aliado que conozca la norma antes de que el problema llegue, no después.</strong></p>
+      <p class="faq-a">El Régimen de Propiedad Horizontal establece las obligaciones y derechos de propietarios, Juntas Directivas y administradores en Panamá. ForumPHs opera en cumplimiento estricto de ese marco y, sobre todo, lo aplica de forma activa: el criterio jurídico entra en la decisión antes del conflicto, no como defensa posterior. <strong>Su Junta Directiva merece un aliado que conozca el Régimen antes de que el problema llegue.</strong></p>
     </div>
 
     <div class="faq-item reveal">
       <p class="faq-q">Tenemos problemas serios de morosidad. ¿Cómo los maneja ForumPHs?</p>
-      <p class="faq-a">La morosidad no es un problema de comunicación — es un problema de sistema. ForumPHs la gestiona con un protocolo estructurado que combina seguimiento administrativo, gestión de cobro y, cuando corresponde, acción jurídica directa. Cada caso tiene un estado documentado. Ninguna unidad en mora queda sin seguimiento activo. <strong>Si hoy su administrador no le puede decir exactamente en qué etapa está cada deudor, su fondo de mantenimiento está en riesgo.</strong></p>
+      <p class="faq-a">La morosidad no es un problema de comunicación — es un problema de sistema. ForumPHs la gestiona con un protocolo estructurado que combina seguimiento administrativo, gestión de cobro y, cuando corresponde, acción jurídica directa. Cada caso tiene un estado documentado. Ninguna unidad en mora queda sin seguimiento activo. <strong>Saber en qué etapa está cada deudor no es un detalle contable: la cartera vencida a más de sesenta días tiene una recuperación espontánea de uno de cada cinco casos, y lo que no entra a caja lo termina cubriendo el resto de los propietarios.</strong></p>
     </div>
 
     <div class="faq-item reveal">
       <p class="faq-q">¿Cómo funciona el sistema de SLAs y por qué importa?</p>
-      <p class="faq-a">Un SLA es un compromiso con tiempo de respuesta definido y auditable. En ForumPHs operamos con tres niveles: <span class="accent">Urgente</span> (respuesta inmediata), <span class="accent">Prioritario</span> (respuesta en horas) y <span class="accent">Regular</span> (respuesta en días hábiles). Cada mes recibe un reporte que muestra el cumplimiento real de esos compromisos. <strong>Si su administrador actual no tiene SLAs escritos, no tiene administración: tiene improvisación.</strong></p>
+      <p class="faq-a">Un SLA es un compromiso con tiempo de respuesta definido y auditable. En ForumPHs operamos con tres niveles: <span class="accent">Urgente</span> (respuesta inmediata), <span class="accent">Prioritario</span> (respuesta en horas) y <span class="accent">Regular</span> (respuesta en días hábiles). Cada mes recibe un reporte que muestra el cumplimiento real de esos compromisos. <strong>Un SLA escrito es lo que separa un compromiso medible de una intención: sin tiempos definidos por escrito, no hay forma de evaluar el servicio.</strong></p>
     </div>
 
     <div class="faq-item reveal">
       <p class="faq-q">¿Qué incluye exactamente el servicio de gestión contable?</p>
-      <p class="faq-a">Gestión de ingresos y egresos, control del fondo de mantenimiento, registro de pagos por unidad, y reportes contables periódicos que cualquier propietario puede auditar. La contabilidad de su PH no es un archivo que aparece cuando hay una asamblea — es un registro vivo, actualizado y transparente. <strong>Una Junta Directiva que no tiene visibilidad financiera en tiempo real no administra: espera que los problemas aparezcan solos.</strong></p>
+      <p class="faq-a">Gestión de ingresos y egresos, control del fondo de mantenimiento, registro de pagos por unidad, y reportes contables periódicos que cualquier propietario puede auditar. La contabilidad de su PH no es un archivo que aparece cuando hay una asamblea — es un registro vivo, actualizado y transparente. <strong>Con visibilidad financiera continua, una Junta corrige con un ajuste ordenado lo que sin ella se descubre cuando ya solo queda una cuota extraordinaria.</strong></p>
     </div>
 
     <div class="faq-item reveal">
@@ -1314,12 +1417,17 @@ footer {
 
     <div class="faq-item reveal">
       <p class="faq-q">¿Cuánto tiempo lleva hacer el cambio de administradora?</p>
-      <p class="faq-a">El proceso de transición está diseñado para no interrumpir la operación de su propiedad. ForumPHs coordina la recepción de documentación, estados de cuenta y contratos vigentes con un protocolo de traspaso estructurado. La mayoría de comunidades que postergan el cambio lo hacen por miedo al proceso — no por satisfacción con su administrador actual. <strong>Si ya sabe que algo no está funcionando, cada mes que espera es un mes de gestión deficiente que su patrimonio está absorbiendo.</strong></p>
+      <p class="faq-a">El proceso de transición está diseñado para no interrumpir la operación de su propiedad. ForumPHs coordina la recepción de documentación, estados de cuenta y contratos vigentes con un protocolo de traspaso estructurado. El temor al proceso suele pesar más que el proceso en sí: un traspaso ordenado se planifica y se documenta. <strong>Cada mes cuenta: los gastos mayores de un edificio tienen calendario propio, y la reserva que no se construye hoy se cobra después de golpe.</strong></p>
+    </div>
+
+    <div class="faq-item reveal">
+      <p class="faq-q">Soy propietario, no miembro de la Junta. ¿Esto me sirve de algo?</p>
+      <p class="faq-a">Sí. Usted no contrata la administración, pero su voto en asamblea define el estándar con el que se administra su patrimonio. Un propietario informado puede pedir en asamblea cuatro cosas concretas: los meses de cobertura de caja del edificio, cuánto hay reservado para los gastos mayores de los próximos cinco años, qué porcentaje de la mora lleva más de sesenta días vencida, y cuánto cuesta operar cada unidad frente a lo que cada unidad paga. <strong>Si nadie puede responder esas preguntas, esa ausencia de respuesta ya es la respuesta.</strong></p>
     </div>
 
     <div class="faq-item reveal">
       <p class="faq-q">¿Cómo iniciamos el proceso con ForumPHs?</p>
-      <p class="faq-a">El primer paso es una evaluación de su propiedad. Sin compromiso, sin costo. Analizamos la situación actual de su PH — administrativa, contable y legal — y le presentamos un diagnóstico claro. A partir de ahí, usted decide. Lo que no cambia después de esa conversación es que ya tendrá información concreta para tomar una decisión fundamentada. <strong>Eso, su administrador actual probablemente nunca se lo ofreció.</strong></p>
+      <p class="faq-a">El primer paso es una evaluación de su propiedad. Sin compromiso, sin costo. Analizamos la situación actual de su PH — administrativa, contable y legal — y le presentamos un diagnóstico claro. A partir de ahí, usted decide. Lo que no cambia después de esa conversación es que ya tendrá información concreta para tomar una decisión fundamentada. <strong>Un diagnóstico por escrito convierte una intuición sobre el edificio en datos sobre los que la Junta puede decidir.</strong></p>
     </div>
 
   </div>
@@ -1327,7 +1435,7 @@ footer {
   <div class="faq-cta-block reveal">
     <span class="faq-cta-label">¿Su pregunta no está aquí?</span>
     <h3 class="faq-cta-title">Hable directamente con nuestro equipo.<br>Sin formularios genéricos, sin respuestas automáticas.</h3>
-    <p class="faq-cta-sub">La consulta la atiende una abogada, no un vendedor.</p>
+    <p class="faq-cta-sub">La consulta la atiende una abogada especialista en Régimen de Propiedad Horizontal.</p>
     <a href="#contacto" class="btn-primary">Solicitar diagnóstico gratuito →</a>
   </div>
 </section>
@@ -1344,14 +1452,14 @@ footer {
     <p class="cta-sub">
       Diagnóstico inicial gratuito. Sin compromiso. Evaluamos el estado actual de su
       Propiedad Horizontal y le presentamos qué requiere atención inmediata.
-      La consulta la hace una abogada, no un vendedor.
+      La consulta la atiende una abogada especialista en Régimen de Propiedad Horizontal.
     </p>
     <div class="cta-actions">
       <a href="#contacto" class="btn-primary">Solicitar diagnóstico gratuito →</a>
       <a href="tel:+507" class="btn-ghost">O llámenos directamente</a>
     </div>
     <div style="margin-top:48px;font-family:var(--font-sans);font-size:11px;letter-spacing:0.20em;text-transform:uppercase;color:var(--chalk-42);">
-      forumphs.com &nbsp;·&nbsp; Panamá &nbsp;·&nbsp; Bajo Ley 284 de 2022 &nbsp;·&nbsp; Desde 2015
+      forumphs.com &nbsp;·&nbsp; Panamá &nbsp;·&nbsp; Bajo el Régimen de Propiedad Horizontal &nbsp;·&nbsp; Desde 2015
     </div>
   </div>
 </section>
@@ -1373,7 +1481,7 @@ footer {
       <div class="contact-brand">
         <span class="wm wm-xs"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
         <p class="contact-brand-line">Administración de Propiedad Horizontal</p>
-        <p class="contact-brand-sub">Panamá · Desde 2015 · Ley 284 de 2022</p>
+        <p class="contact-brand-sub">Panamá · Desde 2015 · Régimen de Propiedad Horizontal</p>
       </div>
 
       <div class="contact-items">
@@ -1422,7 +1530,7 @@ footer {
       <div class="contact-rep">
         <span class="contact-rep-label">Representante Legal</span>
         <p class="contact-rep-name">Ivette Flores</p>
-        <p class="contact-rep-title">Abogada · Gerente General · ForumPHs</p>
+        <p class="contact-rep-title">Abogada · Especialista en Régimen de Propiedad Horizontal · ForumPHs</p>
       </div>
     </div>
 
