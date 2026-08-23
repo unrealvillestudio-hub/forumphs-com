@@ -48,6 +48,8 @@ a{color:inherit}
 .topbar nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .topbar nav a{color:var(--chalk-42);text-decoration:none}
 .topbar nav a:hover,.topbar nav a[aria-current]{color:var(--chalk)}
+.topbar nav a.feature,.topbar nav a.feature:hover,.topbar nav a.feature[aria-current]{color:var(--terra);font-weight:600}
+.topbar nav a.feature:hover{filter:brightness(1.18)}
 .hero{padding:72px 0 40px;border-bottom:1px solid var(--chalk-06)}
 .eyebrow{font-family:var(--font-display);font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--terra);margin-bottom:18px}
 h1{font-family:var(--font-serif);font-size:clamp(30px,5.2vw,46px);font-weight:500;line-height:1.16;letter-spacing:-.01em}
@@ -59,12 +61,21 @@ h1{font-family:var(--font-serif);font-size:clamp(30px,5.2vw,46px);font-weight:50
 article{padding:44px 0 8px}
 article p{font-family:var(--font-serif);font-size:19px;line-height:1.72;color:rgba(249,248,255,.86);margin-bottom:22px}
 article p:last-child{margin-bottom:0}
-.list{list-style:none;padding:52px 0 0}
-.card{display:block;text-decoration:none;border-top:1px solid var(--chalk-12);padding:26px 0;transition:background .18s}
-.card:hover{background:var(--chalk-06)}
-.card h2{font-family:var(--font-serif);font-size:23px;font-weight:500;line-height:1.28;margin-bottom:9px}
-.card p{font-size:14px;line-height:1.62;color:var(--chalk-72)}
-.card .stamp{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--chalk-42);margin-bottom:10px;display:block}
+.list{list-style:none;padding:46px 0 0;display:grid;gap:18px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(292px,1fr))}
+.card{display:flex;flex-direction:column;text-decoration:none;background:var(--carbon);border:1px solid var(--chalk-12);border-radius:3px;padding:24px 24px 22px;transition:border-color .18s,background .18s}
+.card:hover{border-color:var(--terra);background:var(--surface)}
+.card .topic{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--terra);margin-bottom:13px}
+.card h2{font-family:var(--font-serif);font-size:22px;font-weight:500;line-height:1.26;padding-left:14px;border-left:2px solid var(--terra);margin-bottom:11px}
+.card p{font-size:14px;line-height:1.62;color:var(--chalk-72);margin-bottom:18px}
+.card .stamp{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--chalk-42)}
+/* La imagen es OPCIONAL y refuerza, no gobierna: cuando no existe no se emite nada — ni
+   marcador de posición, ni caja vacía, ni alto reservado.
+   El align-items:start de la grilla es lo que hace que eso baste: cada tarjeta mide lo
+   que mide su contenido. Estirarlas a la altura de la fila abriría, dentro de la tarjeta
+   SIN imagen, exactamente el hueco que este bloque prohíbe — el alto lo impondría la
+   imagen de la vecina. Las columnas siguen alineadas; solo el borde inferior varía. */
+.card .shot{margin-top:16px;border-radius:2px;overflow:hidden;aspect-ratio:16/9}
+.card .shot img{display:block;width:100%;height:100%;object-fit:cover}
 .related{margin-top:56px;padding-top:30px;border-top:1px solid var(--amethyst)}
 .related h2{font-family:var(--font-display);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--terra);margin-bottom:6px}
 .related .why{font-size:13px;color:var(--chalk-42);margin-bottom:14px}
@@ -151,7 +162,7 @@ ${head}
     <a class="mark" href="/">${escapeHtml(site)}</a>
     <nav>
       <a href="/">Inicio</a>
-      <a href="${escapeHtml(blogPath)}"${ogType === 'website' ? ' aria-current="page"' : ''}>Artículos</a>
+      <a class="feature" href="${escapeHtml(blogPath)}"${ogType === 'website' ? ' aria-current="page"' : ''}>Sin tecnicismos</a>
       <a href="/#contacto">Diagnóstico gratuito</a>
     </nav>
   </div>

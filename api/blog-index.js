@@ -8,6 +8,16 @@ import { page, escapeHtml, formatStamp, absoluteUrl, siteNameOf, failLoud } from
 const PROVIDER = 'vercel_html';
 const BLOG_PATH = '/blog';
 
+// Textos de plantilla de ESTE repo, que es artefacto exclusivo de marca (MULTIBRAND_RULE
+// §3): el sitio de una sola marca. No gobiernan comportamiento, no viajan a ninguna capa
+// compartida y no van a la base — son la copia de la portada del listado, igual que
+// «Inicio» o «Diagnóstico gratuito» ya lo son en la plantilla.
+//
+// El rótulo de interfaz y la URL están DESACOPLADOS a propósito: `/blog` es activo de
+// SEO y no se mueve; cómo se llama el enlace es decisión editorial.
+const LIST_HEADING = 'Hablemos sin tecnicismos';
+const LIST_LEDE = 'En su edificio se toman decisiones con documentos, cifras y plazos que casi nadie le explicó. Aquí los explicamos uno por uno, en el idioma en que se habla, para que llegue a la próxima asamblea sabiendo qué preguntar.';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Allow', 'GET, HEAD');
@@ -47,17 +57,31 @@ export default async function handler(req, res) {
     const title = pageNum > 1
       ? `Artículos — página ${pageNum} · ${site}`
       : `Artículos · ${site}`;
-    const description = config.description
-      ? String(config.description)
-      : `Artículos publicados por ${site}.`;
+    // La bajada visible es la de plantilla. `config.description`, si el canal la trae,
+    // sigue gobernando la meta description: es dato de SEO del canal y manda sobre la
+    // copia del repo.
+    const description = config.description ? String(config.description) : LIST_LEDE;
 
+    // Orden de la tarjeta: etiqueta de tema · título · extracto · fecha · imagen.
+    //
+    // Cada bloque se emite SOLO si tiene contenido. La etiqueta viene de `public_label`
+    // resuelto por `brand_id` desde la tabla — si el catálogo no la trajo, la tarjeta se
+    // apoya en la jerarquía tipográfica y no imprime nada. La imagen es opcional por
+    // requisito, no por descuido: sin `assets.image.url` no se emite ni contenedor ni
+    // marcador de posición.
     const cards = shown.map((p) => {
       const stamp = formatStamp(p.published_iso, config);
-      return `  <a class="card" href="${escapeHtml(`${BLOG_PATH}/${p.slug}`)}">
-    ${stamp ? `<span class="stamp">${escapeHtml(stamp)}</span>` : ''}
-    <h2>${escapeHtml(p.title)}</h2>
-    <p>${escapeHtml(p.excerpt)}</p>
-  </a>`;
+      return [
+        `  <a class="card" href="${escapeHtml(`${BLOG_PATH}/${p.slug}`)}">`,
+        p.public_label ? `    <span class="topic">${escapeHtml(p.public_label)}</span>` : '',
+        `    <h2>${escapeHtml(p.title)}</h2>`,
+        p.excerpt ? `    <p>${escapeHtml(p.excerpt)}</p>` : '',
+        stamp ? `    <span class="stamp">${escapeHtml(stamp)}</span>` : '',
+        p.image_url
+          ? `    <span class="shot"><img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" decoding="async"></span>`
+          : '',
+        `  </a>`,
+      ].filter(Boolean).join('\n');
     }).join('\n');
 
     const pager = (pageNum > 1 || hasNext)
@@ -69,8 +93,8 @@ export default async function handler(req, res) {
 
     const body = `<div class="hero">
   <div class="eyebrow">Artículos</div>
-  <h1>${escapeHtml(pageNum > 1 ? `Artículos — página ${pageNum}` : 'Artículos')}</h1>
-  <p class="lede">${escapeHtml(description)}</p>
+  <h1>${escapeHtml(pageNum > 1 ? `${LIST_HEADING} — página ${pageNum}` : LIST_HEADING)}</h1>
+  <p class="lede">${escapeHtml(LIST_LEDE)}</p>
 </div>
 ${shown.length ? `<div class="list">\n${cards}\n</div>` : '<p class="empty">Todavía no hay artículos publicados en este canal.</p>'}
 ${pager}`;
