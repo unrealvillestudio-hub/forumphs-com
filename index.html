@@ -94,6 +94,33 @@ nav {
 }
 .nav-feature:hover { filter:brightness(1.12); }
 
+/* Hamburguesa: solo existe por debajo de 900px (ver bloque RESPONSIVE). */
+.nav-toggle {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 42px; height: 38px; padding: 0;
+  margin-left: auto;
+  background: transparent; color: var(--chalk-72);
+  border: 1px solid var(--chalk-12); border-radius: 2px;
+  cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease;
+}
+.nav-toggle:hover { color: var(--chalk); border-color: var(--chalk-42); }
+.nav-toggle:focus-visible { outline: 2px solid var(--amethyst); outline-offset: 2px; }
+.nav-toggle-bars {
+  display: block; position: relative; width: 18px; height: 12px;
+}
+.nav-toggle-bars span {
+  position: absolute; left: 0; width: 100%; height: 1.5px;
+  background: currentColor; border-radius: 1px;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+.nav-toggle-bars span:nth-child(1) { top: 0; }
+.nav-toggle-bars span:nth-child(2) { top: 5.25px; }
+.nav-toggle-bars span:nth-child(3) { top: 10.5px; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(1) { transform: translateY(5.25px) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(3) { transform: translateY(-5.25px) rotate(-45deg); }
+
 /* ── HERO ── */
 #hero {
   min-height: 100vh;
@@ -736,7 +763,28 @@ footer {
 /* ── RESPONSIVE ── */
 @media(max-width:900px) {
   nav { padding:18px 24px; }
-  .nav-links { display:none; }
+  .nav-toggle { display:inline-flex; }
+  /* El mismo contenedor de escritorio pasa a ser el panel desplegable: los 8 enlaces
+     se declaran una sola vez y conservan su orden. */
+  .nav-links {
+    display: none;
+    position: absolute; top:100%; left:0; right:0;
+    flex-direction: column; align-items:stretch; gap:0;
+    padding: 8px 0 14px;
+    background: var(--void);
+    border-bottom: 1px solid var(--chalk-12);
+    max-height: calc(100vh - 72px); overflow-y:auto;
+  }
+  .nav-links.is-open { display:flex; }
+  .nav-links .nav-link {
+    display: block; font-size:15px; color:var(--chalk);
+    padding: 15px 24px; border-bottom:1px solid var(--chalk-06);
+  }
+  .nav-links .nav-feature,
+  .nav-links .nav-cta {
+    display: block; text-align:center;
+    margin: 14px 24px 0; padding:14px 22px;
+  }
   #hero { grid-template-columns:1fr; min-height:auto; }
   .hero-left { padding:100px 24px 48px; }
   .hero-right { display:none; }
@@ -792,7 +840,10 @@ footer {
     <span class="wm wm-nav"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
     <span class="nav-sub">Administración · Panamá · Régimen de PH</span>
   </div>
-  <div class="nav-links">
+  <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Abrir menú de navegación">
+    <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+  </button>
+  <div class="nav-links" id="nav-links">
     <a href="#about" class="nav-link">Nosotros</a>
     <a href="#servicios" class="nav-link">Servicios</a>
     <a href="#dashboard" class="nav-link">Cómo funciona</a>
@@ -1615,6 +1666,51 @@ footer {
 </footer>
 
 <script>
+// Menú móvil: el panel es el mismo .nav-links del escritorio, así que los enlaces no se
+// duplican. Cierra al tocar un enlace (son anclas internas: si quedara abierto taparía
+// la sección de destino), al tocar fuera y con Escape.
+var navToggle = document.getElementById('nav-toggle');
+var navLinks  = document.getElementById('nav-links');
+var mainNav   = document.getElementById('main-nav');
+
+function setNavOpen(open) {
+  if (!navToggle || !navLinks) return;
+  navLinks.classList.toggle('is-open', open);
+  navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  navToggle.setAttribute('aria-label', (open ? 'Cerrar' : 'Abrir') + ' menú de navegación');
+}
+function navIsOpen() {
+  return !!navLinks && navLinks.classList.contains('is-open');
+}
+
+if (navToggle && navLinks) {
+  navToggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    setNavOpen(!navIsOpen());
+  });
+
+  navLinks.addEventListener('click', function(e) {
+    if (e.target.closest('a')) setNavOpen(false);
+  });
+
+  document.addEventListener('click', function(e) {
+    if (navIsOpen() && !mainNav.contains(e.target)) setNavOpen(false);
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && navIsOpen()) {
+      setNavOpen(false);
+      navToggle.focus();
+    }
+  });
+
+  // Al pasar a escritorio el panel deja de existir como tal: el estado no debe quedar
+  // colgado en aria-expanded.
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 900 && navIsOpen()) setNavOpen(false);
+  });
+}
+
 // Nav border on scroll
 window.addEventListener('scroll', function() {
   var nav = document.getElementById('main-nav');
