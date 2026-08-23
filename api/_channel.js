@@ -15,6 +15,18 @@ const CHANNEL_SCHEMA = 'intel';
 const CHANNEL_TABLE = 'brand_publish_channels';
 const CONTENT_SCHEMA = 'content';
 const CONTENT_TABLE = 'content_pieces';
+const TOPIC_SCHEMA = 'intel';
+const TOPIC_TABLE = 'brand_topics';
+
+// Columnas de la superficie pública del tema. Son EJE: nombran la función (una clave de
+// agrupación y un rótulo legible), no el caso de ninguna marca. Los VALORES —los temas y
+// sus rótulos— son instancia y viven en la tabla, resueltos por `brand_id`. Este archivo
+// no enumera ni un solo tema: uno nuevo entra sembrando una fila.
+const TOPIC_LABEL_COLS = ['theme_key', 'public_label'];
+
+// Techo de la lectura del catálogo de temas de una marca. Acotado a propósito: es un
+// diccionario de rótulos, no una consulta abierta.
+const TOPIC_LOOKUP_LIMIT = 500;
 
 // Estado que el canal exige para que una pieza sea servible en la web.
 const PUBLISHED_STATUS = 'published';
@@ -326,11 +338,112 @@ export async function fetchPieces(channel, { limit = 50, offset = 0, domain = nu
   }
 
   const slugDerived = !optional.includes('slug');
+
+  // La unión con el catálogo de temas ocurre acá, no en PostgREST: `content_pieces` y
+  // `brand_topics` viven en esquemas distintos y un `embed` entre esquemas depende de
+  // una FK declarada y de que ambos estén expuestos. Un diccionario por `brand_id` y un
+  // match por `domain` da el mismo resultado sin esa dependencia, y degrada solo.
+  const topics = (rows ?? []).length
+    ? await fetchTopicLabels(brand, schemaFallbacks)
+    : new Map();
+
   return {
-    pieces: (rows ?? []).map(normalizePiece),
+    pieces: (rows ?? []).map((r) => normalizePiece(r, topics)),
     schema_fallbacks: schemaFallbacks,
     slug_derived: slugDerived,
   };
+}
+
+// ── 3 · Etiquetas públicas de tema ──────────────────────────────────────────────────
+//
+// `content_pieces.domain` NO es un rótulo publicable, por dos razones medidas:
+//
+//   · el sufijo de un dominio es el FRENTE DE AUDIENCIA, no el tema: dos dominios
+//     hermanos son el mismo tema contado a dos audiencias, y publicarlos como temas
+//     distintos duplicaría la entrada y expondría maquinaria interna;
+//   · los dominios están redactados como ÁNGULOS DE ESCRITURA — buena instrucción al
+//     escritor, mala navegación.
+//
+// Por eso la superficie pública lee `public_label` y agrupa por `theme_key`, ambos
+// resueltos por `brand_id` desde la tabla. Este módulo no conoce ni un solo tema.
+//
+// ESTA LECTURA NUNCA ROMPE. Es enriquecimiento, no contrato: si la tabla no existe, si
+// las columnas no existen o si la red falla, se devuelve un diccionario vacío, la tarjeta
+// se renderiza SIN etiqueta y el motivo queda en `schema_fallbacks`. Nunca un 500, nunca
+// una etiqueta inventada.
+export async function fetchTopicLabels(brand, schemaFallbacks = []) {
+  const byDomain = new Map();
+  let labelCols = [...TOPIC_LABEL_COLS];
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    // Sin ninguna columna de etiqueta no queda nada que unir: pedir solo `domain` sería
+    // una consulta sin uso.
+    if (!labelCols.length) return byDomain;
+
+    const cols = ['domain', ...labelCols];
+    const path = `${TOPIC_TABLE}?select=${cols.join(',')}&${eq('brand_id', brand)}&limit=${TOPIC_LOOKUP_LIMIT}`;
+
+    let result;
+    try {
+      result = await pgrest({ schema: TOPIC_SCHEMA, path });
+    } catch (e) {
+      // `pgrest` lanza si la DB no se alcanza. Para el canal eso es fatal; para una
+      // etiqueta no lo es.
+      schemaFallbacks.push({
+        code: 'SCHEMA_FALLBACK',
+        detail: `${TOPIC_SCHEMA}.${TOPIC_TABLE} inalcanzable: las tarjetas se renderizan sin etiqueta de tema — ${e?.detail ?? e?.message ?? e}`,
+      });
+      return byDomain;
+    }
+
+    const { data, error } = result;
+
+    if (!error) {
+      for (const row of data ?? []) {
+        if (!row?.domain) continue;
+        byDomain.set(String(row.domain), {
+          theme_key: textOrNull(row.theme_key),
+          public_label: textOrNull(row.public_label),
+        });
+      }
+      return byDomain;
+    }
+
+    if (isUndefinedColumn(error)) {
+      const missing = namedMissingColumn(error, labelCols);
+      if (missing) {
+        schemaFallbacks.push({
+          code: 'SCHEMA_FALLBACK',
+          detail: `${TOPIC_SCHEMA}.${TOPIC_TABLE} sin columna ${missing}: se reintenta el diccionario de temas sin ella — ${error.message}`,
+        });
+        labelCols = labelCols.filter((c) => c !== missing);
+        continue;
+      }
+      schemaFallbacks.push({
+        code: 'SCHEMA_FALLBACK',
+        detail: `${TOPIC_SCHEMA}.${TOPIC_TABLE} rechazó las columnas de etiqueta (${labelCols.join(', ')}): las tarjetas se renderizan sin etiqueta de tema — ${error.message}`,
+      });
+      return byDomain;
+    }
+
+    // Relación ausente o cualquier otro fallo de lectura: se degrada declarándolo.
+    schemaFallbacks.push({
+      code: 'SCHEMA_FALLBACK',
+      detail: `${TOPIC_SCHEMA}.${TOPIC_TABLE} no se pudo leer: las tarjetas se renderizan sin etiqueta de tema — ${error.message}`,
+    });
+    return byDomain;
+  }
+
+  return byDomain;
+}
+
+// Una columna de texto que llega vacía, en blanco o nula NO es una etiqueta. Se devuelve
+// `null` para que la tarjeta omita el bloque entero: imprimir la cadena `null` en
+// pantalla sería peor que no tener etiqueta.
+function textOrNull(v) {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t ? t : null;
 }
 
 // Cuando la columna `slug` no existe, el slug se DERIVA de forma estable y única:
@@ -351,7 +464,7 @@ export function slugify(s) {
     .slice(0, 120) || 'articulo';
 }
 
-function normalizePiece(row) {
+function normalizePiece(row, topics = null) {
   const assets = (row.assets && typeof row.assets === 'object') ? row.assets : {};
   const copy = (assets.copy && typeof assets.copy === 'object') ? assets.copy : {};
   const image = (assets.image && typeof assets.image === 'object') ? assets.image : {};
@@ -363,6 +476,10 @@ function normalizePiece(row) {
 
   const body = String(copy.aife_filtered || copy.raw || '').trim();
 
+  // Etiqueta de tema: la del dominio de esta pieza, si el catálogo la trajo. Sin entrada
+  // en el catálogo, ambas quedan en `null` y la superficie omite el bloque.
+  const topic = (topics && row.domain) ? topics.get(String(row.domain)) : null;
+
   return {
     id: row.id,
     domain: row.domain || null,
@@ -371,7 +488,9 @@ function normalizePiece(row) {
     title: String(copy.title || '').trim() || 'Sin título',
     body,
     excerpt: excerptOf(body),
-    image_url: typeof image.url === 'string' ? image.url : null,
+    image_url: typeof image.url === 'string' && image.url.trim() ? image.url.trim() : null,
+    theme_key: topic?.theme_key ?? null,
+    public_label: topic?.public_label ?? null,
     published_at: stamped,
     published_iso: toIso(stamped),
   };

@@ -19,16 +19,31 @@ const PIECES = [
     assets: { copy: { title: 'Hermana del mismo genoma', aife_filtered: 'Cuerpo hermana.' } } },
   { id: 'aaaabbbb-cccc-dddd-eeee-ffff00001111', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
     domain: 'otro-genoma', status: 'published', created_at: '2026-08-10T10:00:00Z',
-    assets: { copy: { title: 'Otro genoma', raw: 'Cuerpo otro.' } } },
+    assets: { copy: { title: 'Otro genoma', raw: 'Cuerpo otro.' }, image: { url: 'https://cdn.example.invalid/c.png' } } },
+  { id: 'ddddeeee-ffff-0000-1111-222233334444', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
+    domain: 'sin-catalogo', status: 'published', created_at: '2026-08-05T10:00:00Z',
+    assets: { copy: { title: 'Dominio fuera del catálogo', raw: 'Cuerpo sin tema.' } } },
 ];
 
 const CHANNEL_ROW = { brand_id: 'BrandUnderTest', platform_key: 'chan_key', provider: 'vercel_html',
   config: { base_url: 'https://site.example.invalid/', template: 'editorial', items_per_page: 2, related_count: 2, site_name: 'Sitio de Prueba' }, active: true };
 
+// Catálogo de temas de la marca bajo prueba. Valores inventados a propósito: son
+// INSTANCIA y el renderizador no debe conocer ninguno. La primera pieza NO tiene imagen
+// y la segunda SÍ, que es exactamente el par que el listado debe saber renderizar.
+const TOPIC_ROWS = [
+  { domain: 'el-acta-como-instrumento', theme_key: 'tema-uno', public_label: 'Rótulo público uno' },
+  { domain: 'otro-genoma', theme_key: 'tema-dos', public_label: 'Rótulo público dos' },
+  // `sin-catalogo` no está: una pieza sin entrada debe renderizar sin etiqueta.
+];
+
 function json(status, body) { return { ok: status < 400, status, text: async () => JSON.stringify(body) }; }
 
 // scenario: cómo responde la DB simulada
 let scenario = 'happy';
+// topicScenario: cómo responde `intel.brand_topics`, con su propio eje de fallo — la
+// etiqueta es enriquecimiento y su caída no puede arrastrar al listado.
+let topicScenario = 'happy';
 globalThis.fetch = async (url) => {
   const u = String(url);
   const isChannel = u.includes('brand_publish_channels');
@@ -40,6 +55,15 @@ globalThis.fetch = async (url) => {
       return json(400, { code: '42703', message: 'column brand_publish_channels.active does not exist' });
     return json(200, [CHANNEL_ROW]);
   }
+  if (u.includes('brand_topics')) {
+    if (topicScenario === 'no_table') return json(404, { code: 'PGRST205', message: 'Could not find the table \'intel.brand_topics\' in the schema cache' });
+    if (topicScenario === 'unreachable') throw new TypeError('fetch failed');
+    if (topicScenario === 'no_label_col' && u.includes('public_label'))
+      return json(400, { code: '42703', message: 'column brand_topics.public_label does not exist' });
+    const sel = (/select=([^&]+)/.exec(u)?.[1] ?? '').split(',');
+    return json(200, TOPIC_ROWS.map((r) => Object.fromEntries(sel.filter((c) => c in r).map((c) => [c, r[c]]))));
+  }
+
   // content_pieces
   if (u.includes('slug')) return json(400, { code: '42703', message: 'column content_pieces.slug does not exist' });
   if (scenario === 'no_published_at' && u.includes('published_at'))
@@ -156,7 +180,7 @@ process.env.BRAND_ID = saved;
 console.log('\n── 5 · sitemap.xml y robots.txt de la misma consulta ──');
 res = mockRes(); await sitemap(mockReq(), res);
 check('xml válido', res.body.startsWith('<?xml') && res.body.includes('</urlset>'));
-check('incluye los 3 artículos', (res.body.match(/<loc>https:\/\/site\.example\.invalid\/blog\//g) || []).length === 3, (res.body.match(/<loc>https:\/\/site\.example\.invalid\/blog\//g)||[]).length);
+check('incluye los 4 artículos', (res.body.match(/<loc>https:\/\/site\.example\.invalid\/blog\//g) || []).length === 4, (res.body.match(/<loc>https:\/\/site\.example\.invalid\/blog\//g)||[]).length);
 check('lastmod desde el sello real', res.body.includes('<lastmod>2026-08-22</lastmod>'));
 res = mockRes(); await robots(mockReq(), res);
 check('Sitemap desde config.base_url', res.body.includes('Sitemap: https://site.example.invalid/sitemap.xml'));
@@ -172,6 +196,87 @@ console.log('\n── 7 · Método no permitido ──');
 scenario = 'happy';
 res = mockRes(); await blogIndex({ method: 'POST', query: {}, headers: {} }, res);
 check('405', res.statusCode === 405, res.statusCode);
+
+console.log('\n── 8 · Nav: el rótulo destacado en el acento de marca ──');
+scenario = 'happy'; topicScenario = 'happy';
+res = mockRes(); await blogIndex(mockReq(), res);
+check('nav del blog dice "Sin tecnicismos"', res.body.includes('>Sin tecnicismos</a>'));
+check('ya no dice "Artículos" en el nav', !/nav>[\s\S]*?>Artículos<[\s\S]*?<\/nav>/.test(res.body));
+check('el destacado va en var(--terra)', res.body.includes('.topbar nav a.feature,.topbar nav a.feature:hover,.topbar nav a.feature[aria-current]{color:var(--terra)'));
+check('el enlace lleva la clase del destacado', /<a class="feature" href="\/blog"/.test(res.body));
+check('la URL /blog NO se movió', res.body.includes('href="/blog"'));
+
+console.log('\n── 9 · Encabezado de /blog ──');
+check('H1 nuevo', res.body.includes('<h1>Hablemos sin tecnicismos</h1>'));
+check('bajada nueva', res.body.includes('En su edificio se toman decisiones con documentos, cifras y plazos'));
+check('la bajada genérica ya no existe', !res.body.includes('Artículos publicados por'));
+
+console.log('\n── 10 · Tarjetas: etiqueta de tema, y la imagen es OPCIONAL ──');
+check('etiqueta de tema presente', res.body.includes('<span class="topic">Rótulo público uno</span>'));
+check('la etiqueta va en var(--terra)', res.body.includes('.card .topic{') && res.body.includes('color:var(--terra);margin-bottom:13px}'));
+check('NO se publica el domain como etiqueta', !res.body.includes('>el-acta-como-instrumento<'));
+check('2 tarjetas, 1 con imagen y 1 sin', (res.body.match(/class="card"/g) || []).length === 2 && (res.body.match(/class="shot"/g) || []).length === 1,
+  `${(res.body.match(/class="card"/g)||[]).length} tarjetas / ${(res.body.match(/class="shot"/g)||[]).length} imágenes`);
+check('la tarjeta sin imagen no deja contenedor vacío', !/<span class="shot"><\/span>/.test(res.body) && !/<span class="shot"><img src=""/.test(res.body));
+check('sin marcador de posición gris', !/placeholder|no-image|sin-imagen/i.test(res.body));
+const abre = res.body.indexOf('<a class="card"');
+const tarjeta1 = res.body.slice(abre, res.body.indexOf('</a>', abre));
+check('orden: tema → título → extracto → fecha → imagen',
+  tarjeta1.indexOf('class="topic"') < tarjeta1.indexOf('<h2>')
+  && tarjeta1.indexOf('<h2>') < tarjeta1.indexOf('<p>')
+  && tarjeta1.indexOf('<p>') < tarjeta1.indexOf('class="stamp"')
+  && tarjeta1.indexOf('class="stamp"') < tarjeta1.indexOf('class="shot"'), tarjeta1);
+check('cada tarjeta mide su contenido (sin hueco por la vecina con imagen)',
+  res.body.includes('align-items:start') && !res.body.includes('.card .stamp{margin-top:auto'));
+
+console.log('\n── 10b · Pieza cuyo domain no está en el catálogo → sin etiqueta, sin inventar ──');
+res = mockRes(); await blogIndex(mockReq({ page: 2 }), res);
+check('la pieza sin tema se lista igual', res.body.includes('Dominio fuera del catálogo'));
+check('no imprime la cadena "null"', !/>null</.test(res.body) && !/class="topic">\s*<\/span>/.test(res.body));
+check('la que sí tiene tema la muestra', res.body.includes('Rótulo público dos'));
+
+console.log('\n── 11 · brand_topics inalcanzable → tarjeta sin etiqueta, NUNCA 500 ──');
+for (const [nombre, modo] of [['tabla ausente', 'no_table'], ['red caída', 'unreachable'], ['columna ausente', 'no_label_col']]) {
+  topicScenario = modo;
+  res = mockRes(); await blogIndex(mockReq(), res);
+  check(`${nombre}: status 200 (no 500)`, res.statusCode === 200, res.statusCode);
+  check(`${nombre}: sirve los artículos igual`, res.body.includes('El acta es la única prueba'));
+  check(`${nombre}: sin etiqueta de tema`, !res.body.includes('class="topic"'));
+  check(`${nombre}: sin etiqueta inventada ni "null"`, !/>null</.test(res.body));
+  res = mockRes(); await blogIndex(mockReq({ debug: 'schema' }), res);
+  check(`${nombre}: rastro en schema_fallbacks`, JSON.stringify(res._json.schema_fallbacks).includes('brand_topics'), JSON.stringify(res._json.schema_fallbacks));
+}
+topicScenario = 'happy';
+
+console.log('\n── 12 · El eje en el código, la instancia en el dato ──');
+// Estas comprobaciones no pueden nombrar un tema ni escribir un hex: hacerlo sería la
+// violación que buscan. Se formulan sobre la FORMA del código, no sobre valores.
+const { readFileSync } = await import('node:fs');
+const src = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
+const RENDER = src('api/_render.js');
+const OTRAS = ['api/_channel.js', 'api/blog-index.js', 'api/blog-article.js'].map(src);
+
+// El token de marca se declara UNA vez, en `:root` de la plantilla. Su valor se lee de
+// ahí — no se escribe en este archivo — y se exige que ningún otro fuente lo repita.
+const terra = /--terra:\s*(#[0-9a-fA-F]{3,8})/.exec(RENDER)?.[1];
+check('el acento de marca está declarado como token en :root', Boolean(terra), terra);
+check('ningún fuente repite el valor del token como literal',
+  Boolean(terra) && OTRAS.every((s) => !s.toLowerCase().includes(terra.toLowerCase())));
+check('la superficie referencia el token, no el valor',
+  RENDER.includes('.card .topic{') && RENDER.includes('color:var(--terra)')
+  && (RENDER.match(new RegExp(terra, 'gi')) || []).length === 1);
+
+// Ningún fuente declara una lista de valores con forma de tema. Si alguien pegara los
+// temas sembrados en el código, caerían acá sin que este archivo tenga que nombrarlos.
+const LISTA_DE_SLUGS = /\[\s*'[a-z0-9]+(?:-[a-z0-9]+)+'(?:\s*,\s*'[a-z0-9]+(?:-[a-z0-9]+)+'){2,}/;
+check('ningún fuente enumera valores con forma de tema',
+  ![RENDER, ...OTRAS].some((s) => LISTA_DE_SLUGS.test(s)));
+
+// La etiqueta que se imprime sale del dato, y de un solo sitio.
+const INDEX = src('api/blog-index.js');
+check('la etiqueta impresa proviene solo de public_label',
+  (INDEX.match(/class="topic"/g) || []).length === 1
+  && /p\.public_label \? .*escapeHtml\(p\.public_label\)/.test(INDEX));
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);
