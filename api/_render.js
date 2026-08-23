@@ -42,11 +42,17 @@ body{background:var(--void);color:var(--chalk);font-family:var(--font-sans);-web
 a{color:inherit}
 .wrap{max-width:760px;margin:0 auto;padding:0 24px}
 .topbar{border-bottom:1px solid var(--chalk-12);background:rgba(10,9,12,.88);position:sticky;top:0;z-index:10;backdrop-filter:blur(10px)}
-.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:64px;max-width:1080px}
+/* El encabezado se reacomoda solo: flex-wrap deja caer la nav a una segunda fila
+   exactamente cuando los tres enlaces dejan de caber junto a la marca, sin punto de
+   corte inventado. min-height en vez de height es lo que deja crecer la barra: con la
+   altura fija la segunda fila se salía de la caja. Sin esto, por debajo de 399px el
+   contenido se comía los 24px de padding del .wrap y por debajo de 375px desbordaba la
+   página en horizontal. */
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;min-height:64px;padding-top:10px;padding-bottom:10px;max-width:1080px}
 .mark{font-family:var(--font-display);font-size:15px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
 .mark b{color:var(--terra);font-weight:600}
-.topbar nav{display:flex;gap:22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.topbar nav a{color:var(--chalk-42);text-decoration:none}
+.topbar nav{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.topbar nav a{color:var(--chalk-42);text-decoration:none;white-space:nowrap}
 .topbar nav a:hover,.topbar nav a[aria-current]{color:var(--chalk)}
 .topbar nav a.feature,.topbar nav a.feature:hover,.topbar nav a.feature[aria-current]{color:var(--terra);font-weight:600}
 .topbar nav a.feature:hover{filter:brightness(1.18)}
@@ -93,7 +99,7 @@ article p:last-child{margin-bottom:0}
 footer{margin-top:76px;border-top:1px solid var(--chalk-12);padding:30px 0 46px;font-size:12px;color:var(--chalk-42)}
 footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 footer a{color:var(--chalk-72);text-decoration:none}
-@media(max-width:640px){.topbar nav{gap:14px;font-size:11px}.hero{padding:48px 0 30px}}
+@media(max-width:640px){.topbar nav{gap:9px 14px;font-size:11px}.hero{padding:48px 0 30px}}
 `;
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap';
