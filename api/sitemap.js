@@ -23,9 +23,16 @@ export default async function handler(req, res) {
     const urls = [
       { loc: absoluteUrl(config.base_url, '/'), priority: '1.0', changefreq: 'monthly' },
       { loc: absoluteUrl(config.base_url, BLOG_PATH), priority: '0.9', changefreq: 'weekly' },
+      // `lastmod` es el sello REAL de la pieza —el más reciente entre publicación y
+      // edición—, el mismo que declara `dateModified`. Enviar siempre la fecha de
+      // publicación le diría al rastreador que no vuelva a leer algo que sí cambió.
+      //
+      // El filtro de descartadas es el de `fetchPieces`: una pieza retirada no aparece
+      // acá. Corregir solo el listado la habría dejado fuera del índice pero VIVA y
+      // enviada a Google desde este archivo, que es peor que no corregir nada.
       ...pieces.map((p) => ({
         loc: absoluteUrl(config.base_url, `${BLOG_PATH}/${p.slug}`),
-        lastmod: p.published_iso ? p.published_iso.slice(0, 10) : null,
+        lastmod: (p.modified_iso || p.published_iso)?.slice(0, 10) ?? null,
         priority: '0.8',
         changefreq: 'monthly',
       })),

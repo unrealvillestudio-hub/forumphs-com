@@ -3,7 +3,7 @@
 // Verificable sin JS:  curl -s https://<host>/blog | grep '<h2'
 
 import { resolveChannel, fetchPieces, ChannelError } from './_channel.js';
-import { page, escapeHtml, formatStamp, absoluteUrl, siteNameOf, failLoud } from './_render.js';
+import { page, escapeHtml, formatStamp, absoluteUrl, siteNameOf, blogLabelOf, localeOf, failLoud } from './_render.js';
 
 const PROVIDER = 'vercel_html';
 const BLOG_PATH = '/blog';
@@ -42,8 +42,18 @@ export default async function handler(req, res) {
     const canonical = absoluteUrl(config.base_url, canonicalPath);
     const site = siteNameOf(config);
 
+    // La página 1 vive en `/blog` sin parámetro: la ruta hacia atrás desde la 2 tiene que
+    // apuntar ahí y no a `?page=1`, o se declara como canónica una URL que la propia
+    // página 1 no reconoce como suya.
+    const pagePath = (n) => (n <= 1 ? BLOG_PATH : `${BLOG_PATH}?page=${n}`);
+    const prevUrl = pageNum > 1 ? absoluteUrl(config.base_url, pagePath(pageNum - 1)) : null;
+    const nextUrl = hasNext ? absoluteUrl(config.base_url, pagePath(pageNum + 1)) : null;
+
     if (String(req.query?.debug ?? '') === 'schema') {
       res.setHeader('Cache-Control', 'no-store');
+      // `no-store` evita la caché, no al rastreador: sin esta cabecera la vista de
+      // diagnóstico es una URL indexable que expone el estado interno del canal.
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
       return res.status(200).json({
         provider: channel.provider,
         degraded: channel.degraded,
@@ -54,9 +64,12 @@ export default async function handler(req, res) {
       });
     }
 
+    // Un solo rótulo para el listado: el mismo que lleva la miga del artículo. Dos
+    // fuentes para el mismo nombre es la puerta por la que se cuelan dos nombres.
+    const blogLabel = blogLabelOf(config);
     const title = pageNum > 1
-      ? `Artículos — página ${pageNum} · ${site}`
-      : `Artículos · ${site}`;
+      ? `${blogLabel} — página ${pageNum} · ${site}`
+      : `${blogLabel} · ${site}`;
     // La bajada visible es la de plantilla. `config.description`, si el canal la trae,
     // sigue gobernando la meta description: es dato de SEO del canal y manda sobre la
     // copia del repo.
@@ -86,34 +99,77 @@ export default async function handler(req, res) {
 
     const pager = (pageNum > 1 || hasNext)
       ? `<div class="pager">
-  ${pageNum > 1 ? `<a href="${escapeHtml(pageNum - 1 === 1 ? BLOG_PATH : `${BLOG_PATH}?page=${pageNum - 1}`)}" rel="prev">← Más recientes</a>` : `<a class="void" href="${BLOG_PATH}">·</a>`}
-  ${hasNext ? `<a href="${escapeHtml(`${BLOG_PATH}?page=${pageNum + 1}`)}" rel="next">Anteriores →</a>` : `<a class="void" href="${BLOG_PATH}">·</a>`}
+  ${pageNum > 1 ? `<a href="${escapeHtml(pagePath(pageNum - 1))}" rel="prev">← Más recientes</a>` : `<a class="void" href="${BLOG_PATH}">·</a>`}
+  ${hasNext ? `<a href="${escapeHtml(pagePath(pageNum + 1))}" rel="next">Anteriores →</a>` : `<a class="void" href="${BLOG_PATH}">·</a>`}
 </div>`
       : '';
 
     const body = `<div class="hero">
-  <div class="eyebrow">Artículos</div>
+  <div class="eyebrow">${escapeHtml(blogLabel)}</div>
   <h1>${escapeHtml(pageNum > 1 ? `${LIST_HEADING} — página ${pageNum}` : LIST_HEADING)}</h1>
   <p class="lede">${escapeHtml(LIST_LEDE)}</p>
 </div>
 ${shown.length ? `<div class="list">\n${cards}\n</div>` : '<p class="empty">Todavía no hay artículos publicados en este canal.</p>'}
 ${pager}`;
 
-    const structuredData = {
+    // El logo es del CANAL, no del repo: si la fila no lo trae, `Organization` sale sin
+    // logo en vez de con una ruta inventada que devolvería 404 al rastreador.
+    const rawLogo = typeof config.logo_url === 'string' ? config.logo_url.trim() : '';
+    const logoUrl = rawLogo
+      ? (/^https?:\/\//i.test(rawLogo) ? rawLogo : absoluteUrl(config.base_url, rawLogo))
+      : null;
+    const organization = {
+      '@type': 'Organization',
+      name: site,
+      url: config.base_url,
+      ...(logoUrl ? { logo: { '@type': 'ImageObject', url: logoUrl } } : {}),
+    };
+
+    const articleUrl = (p) => absoluteUrl(config.base_url, `${BLOG_PATH}/${p.slug}`);
+
+    const structuredData = [{
       '@context': 'https://schema.org',
       '@type': 'Blog',
       name: title,
       description,
       url: canonical,
-      inLanguage: config.locale || 'es-PA',
-      publisher: { '@type': 'Organization', name: site, url: config.base_url },
+      inLanguage: localeOf(config),
+      publisher: organization,
       blogPost: shown.map((p) => ({
         '@type': 'BlogPosting',
         headline: p.title,
-        url: absoluteUrl(config.base_url, `${BLOG_PATH}/${p.slug}`),
+        url: articleUrl(p),
         ...(p.published_iso ? { datePublished: p.published_iso } : {}),
+        ...(p.modified_iso ? { dateModified: p.modified_iso } : {}),
+        ...(p.image_url ? { image: [p.image_url] } : {}),
       })),
-    };
+    }, {
+      // `ItemList` con las piezas de ESTA página: es lo que hace que el índice se lea como
+      // un listado ordenado y no como una página suelta. Las posiciones son absolutas
+      // dentro del catálogo, no relativas a la página, para que la 2 no repita 1..N.
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: title,
+      url: canonical,
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      numberOfItems: shown.length,
+      itemListElement: shown.map((p, i) => ({
+        '@type': 'ListItem',
+        position: offset + i + 1,
+        name: p.title,
+        url: articleUrl(p),
+      })),
+    }, {
+      '@context': 'https://schema.org',
+      ...organization,
+    }, {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: site,
+      url: config.base_url,
+      inLanguage: localeOf(config),
+      publisher: organization,
+    }];
 
     for (const f of schema_fallbacks) console.warn(`[blog-index] ${f.code}: ${f.detail}`);
 
@@ -126,6 +182,8 @@ ${pager}`;
       structuredData,
       schemaFallbacks: schema_fallbacks,
       blogPath: BLOG_PATH,
+      prevUrl,
+      nextUrl,
       body,
     }));
   } catch (e) {
