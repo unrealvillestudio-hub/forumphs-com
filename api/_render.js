@@ -122,9 +122,32 @@ export function localeOf(config) {
   return /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(raw) ? raw : 'es-PA';
 }
 
-export function page({ config, title, description, canonical, ogType = 'website', ogImage = null, publishedIso = null, structuredData = null, noindex = false, body, schemaFallbacks = [], blogPath = '/blog' }) {
-  const site = siteNameOf(config);
+// El `lang` del `<html>` es el de LA PIEZA, no el del canal. Una pieza en inglés dentro
+// de un canal `es-PA` se declaraba española: eso le dice al rastreador que traduzca lo
+// que no hay que traducir y arruina el emparejamiento por idioma.
+//
+// Cuando la pieza no declara idioma, manda el locale del canal — que es lo que había.
+// Cuando coincide en idioma con el canal, gana el locale COMPLETO, porque trae la región
+// (`es-PA` es más preciso que `es`). Solo cuando difieren se impone el de la pieza.
+export function pageLangOf(config, language = null) {
   const locale = localeOf(config);
+  const raw = String(language ?? '').trim();
+  if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(raw)) return locale;
+  const primary = (s) => s.split('-')[0].toLowerCase();
+  return primary(raw) === primary(locale) ? locale : raw;
+}
+
+// Rótulo del listado en la navegación estructurada (migas). Sale del canal si la fila lo
+// trae; el default es la copia de plantilla de este repo, que es artefacto de una sola
+// marca (MULTIBRAND_RULE §3).
+export function blogLabelOf(config) {
+  const v = config?.blog_label;
+  return (typeof v === 'string' && v.trim()) ? v.trim() : 'Artículos';
+}
+
+export function page({ config, title, description, canonical, ogType = 'website', ogImage = null, publishedIso = null, modifiedIso = null, structuredData = null, noindex = false, body, schemaFallbacks = [], blogPath = '/blog', language = null, alternates = [], prevUrl = null, nextUrl = null }) {
+  const site = siteNameOf(config);
+  const locale = pageLangOf(config, language);
   const head = [
     `<meta charset="utf-8">`,
     `<meta name="viewport" content="width=device-width,initial-scale=1">`,
@@ -132,6 +155,13 @@ export function page({ config, title, description, canonical, ogType = 'website'
     `<meta name="description" content="${escapeHtml(description)}">`,
     noindex ? `<meta name="robots" content="noindex,follow">` : `<meta name="robots" content="index,follow,max-image-preview:large">`,
     canonical ? `<link rel="canonical" href="${escapeHtml(canonical)}">` : '',
+    // Paginación declarada: sin `prev`/`next` cada página del listado se lee como una
+    // página suelta y compite consigo misma.
+    prevUrl ? `<link rel="prev" href="${escapeHtml(prevUrl)}">` : '',
+    nextUrl ? `<link rel="next" href="${escapeHtml(nextUrl)}">` : '',
+    // Alternates recíprocos. La lista llega vacía mientras no exista el par de idiomas,
+    // y entonces acá no se emite absolutamente nada.
+    ...alternates.map((a) => `<link rel="alternate" hreflang="${escapeHtml(a.hreflang)}" href="${escapeHtml(a.href)}">`),
     `<meta property="og:type" content="${escapeHtml(ogType)}">`,
     `<meta property="og:site_name" content="${escapeHtml(site)}">`,
     `<meta property="og:title" content="${escapeHtml(title)}">`,
@@ -140,6 +170,7 @@ export function page({ config, title, description, canonical, ogType = 'website'
     `<meta property="og:locale" content="${escapeHtml(locale.replace('-', '_'))}">`,
     ogImage ? `<meta property="og:image" content="${escapeHtml(ogImage)}">` : '',
     publishedIso ? `<meta property="article:published_time" content="${escapeHtml(publishedIso)}">` : '',
+    modifiedIso ? `<meta property="article:modified_time" content="${escapeHtml(modifiedIso)}">` : '',
     `<meta name="twitter:card" content="${ogImage ? 'summary_large_image' : 'summary'}">`,
     `<meta name="twitter:title" content="${escapeHtml(title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(description)}">`,
@@ -148,7 +179,10 @@ export function page({ config, title, description, canonical, ogType = 'website'
     `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
     `<link href="${FONTS}" rel="stylesheet">`,
     `<style>${STYLE}</style>`,
-    structuredData ? `<script type="application/ld+json">${jsonLd(structuredData)}</script>` : '',
+    // `structuredData` admite un objeto o varios. Cada tipo va en su propio bloque en
+    // vez de anidarse: es lo que los validadores de schema.org leen sin ambigüedad.
+    ...[].concat(structuredData ?? []).filter(Boolean)
+      .map((sd) => `<script type="application/ld+json">${jsonLd(sd)}</script>`),
   ].filter(Boolean).join('\n');
 
   // El rastro de degradación viaja en el HTML (comentario, invisible al lector) y en la

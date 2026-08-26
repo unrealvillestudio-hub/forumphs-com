@@ -3,10 +3,17 @@
 // Un slug inexistente devuelve 404 REAL. Un 200 con cuerpo vacío se indexa y envenena
 // el índice: está prohibido.
 //
+// Una pieza DESCARTADA es un tercer caso, y no es ninguno de los dos anteriores: existió,
+// se sirvió, Google pudo indexarla, y se retiró. Eso es 410 Gone. El 404 le dice al
+// rastreador «puede que vuelva» y la URL sobrevive meses en el índice; el 410 le dice
+// «se fue» y la retira en días. La diferencia entre los dos es la única palanca que
+// tiene el renderizador para desindexar algo que ya salió.
+//
 // Verificable sin JS:  curl -s -o /dev/null -w '%{http_code}' https://<host>/blog/no-existe  → 404
+//                      curl -s -o /dev/null -w '%{http_code}' https://<host>/blog/<descartada> → 410
 
-import { resolveChannel, fetchPieces, ChannelError } from './_channel.js';
-import { page, paragraphs, escapeHtml, formatStamp, absoluteUrl, siteNameOf, failLoud } from './_render.js';
+import { resolveChannel, fetchPieces, translationAlternates, ChannelError } from './_channel.js';
+import { page, paragraphs, escapeHtml, formatStamp, absoluteUrl, siteNameOf, blogLabelOf, localeOf, pageLangOf, failLoud } from './_render.js';
 
 const PROVIDER = 'vercel_html';
 const BLOG_PATH = '/blog';
@@ -14,6 +21,10 @@ const BLOG_PATH = '/blog';
 // Techo de la búsqueda por slug derivado. Mientras `content_pieces.slug` no exista, el
 // match se hace en memoria sobre la ventana más reciente. Es degradación declarada, no
 // una consulta sin límite.
+//
+// El mismo techo acota la búsqueda de piezas DESCARTADAS: pasadas las 500 más recientes,
+// una URL retirada vuelve a responder 404 en vez de 410. Se prefiere ese techo a una
+// consulta abierta — el 404 desindexa más lento, pero no publica nada.
 const DERIVED_LOOKUP_WINDOW = 500;
 
 export default async function handler(req, res) {
@@ -49,6 +60,15 @@ export default async function handler(req, res) {
     for (const f of schema_fallbacks) console.warn(`[blog-article] ${f.code}: ${f.detail}`);
 
     if (!piece || !piece.body) {
+      // Antes de dar el slug por inexistente hay que preguntar si EXISTIÓ. Esta segunda
+      // lectura solo ocurre en el camino de fallo —el listado y el sitemap no la pagan— y
+      // es la que separa el 410 del 404.
+      const { pieces: retired } = await fetchPieces(channel, {
+        limit: DERIVED_LOOKUP_WINDOW,
+        offset: 0,
+        discarded: 'only',
+      });
+      if (retired.some((p) => p.slug === slug)) return gone(res, channel, slug, schema_fallbacks);
       // Sin cuerpo no hay artículo. Servir un 200 vacío sería peor que el 404.
       return notFound(res, channel, slug, schema_fallbacks);
     }
@@ -56,6 +76,7 @@ export default async function handler(req, res) {
     const canonical = absoluteUrl(config.base_url, `${BLOG_PATH}/${piece.slug}`);
     const site = siteNameOf(config);
     const stamp = formatStamp(piece.published_iso, config);
+    const pageLang = pageLangOf(config, piece.language);
 
     // ── Enlaces internos — HR-FPHS-08 (`blog_enlace_interno`) ────────────────────────
     // Toda pieza de blog cierra invitando a otro artículo del genoma, jamás callejón sin
@@ -99,20 +120,45 @@ ${paragraphs(piece.body)}
 </article>
 ${relatedBlock}`;
 
-    const structuredData = {
+    // ── hreflang ────────────────────────────────────────────────────────────────────
+    // Recíproco o nada. La lista sale de las piezas que comparten `translation_key` con
+    // ésta dentro de la MISMA ventana ya leída: cada URL emitida es una URL que este
+    // mismo renderizador sabe servir. Mientras nadie estampe esa clave, `alternates`
+    // queda vacío y en el `<head>` no aparece ni una etiqueta.
+    const alternates = translationAlternates(pieces, piece, localeOf(config))
+      .map((a) => ({ hreflang: a.hreflang, href: absoluteUrl(config.base_url, `${BLOG_PATH}/${a.slug}`) }));
+
+    // `BlogPosting`, no `Article`: es subclase suya, así que no se pierde nada declarado y
+    // se gana precisión sobre qué clase de página es ésta.
+    const structuredData = [{
       '@context': 'https://schema.org',
-      '@type': 'Article',
+      '@type': 'BlogPosting',
       headline: piece.title,
       description: piece.excerpt,
       mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
       url: canonical,
-      inLanguage: config.locale || 'es-PA',
-      ...(piece.published_iso ? { datePublished: piece.published_iso, dateModified: piece.published_iso } : {}),
+      // El idioma de la PIEZA, con el del canal como respaldo — el mismo criterio que
+      // gobierna el `lang` del `<html>`, para que los dos no puedan contradecirse.
+      inLanguage: pageLang,
+      ...(piece.published_iso ? { datePublished: piece.published_iso } : {}),
+      // `dateModified` real: sale del sello más reciente de la pieza, no de una copia de
+      // `datePublished`.
+      ...(piece.modified_iso ? { dateModified: piece.modified_iso } : {}),
       ...(piece.image_url ? { image: [piece.image_url] } : {}),
       author: { '@type': 'Organization', name: site, url: config.base_url },
       publisher: { '@type': 'Organization', name: site, url: config.base_url },
       ...(piece.domain ? { articleSection: piece.domain } : {}),
-    };
+    }, {
+      // Migas: portada → listado → este artículo. Los tres niveles salen de datos que ya
+      // están resueltos; ninguno se inventa.
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: site, item: absoluteUrl(config.base_url, '/') },
+        { '@type': 'ListItem', position: 2, name: blogLabelOf(config), item: absoluteUrl(config.base_url, BLOG_PATH) },
+        { '@type': 'ListItem', position: 3, name: piece.title, item: canonical },
+      ],
+    }];
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=86400');
@@ -125,6 +171,9 @@ ${relatedBlock}`;
       ogType: 'article',
       ogImage: piece.image_url,
       publishedIso: piece.published_iso,
+      modifiedIso: piece.modified_iso,
+      language: piece.language,
+      alternates,
       structuredData,
       schemaFallbacks: schema_fallbacks,
       blogPath: BLOG_PATH,
@@ -139,25 +188,54 @@ ${relatedBlock}`;
 // es un callejón sin salida. Caché corta a propósito: un 404 con la caché larga del
 // artículo se quedaría pegado cuando la pieza sí se publique.
 function notFound(res, channel, slug, schemaFallbacks = []) {
+  console.warn(`[blog-article] NOT_FOUND: slug='${slug}' no corresponde a ninguna pieza publicada de este canal`);
+  return retiredOrMissing(res, channel, schemaFallbacks, {
+    status: 404,
+    eyebrow: '404',
+    heading: 'Ese artículo no existe.',
+    lede: 'La dirección solicitada no corresponde a ningún artículo publicado en este canal.',
+    title: 'Artículo no encontrado',
+    description: 'La dirección solicitada no corresponde a ningún artículo publicado.',
+  });
+}
+
+// 410 Gone: la pieza EXISTIÓ en esta URL y se retiró. No es lo mismo que el 404 y no se
+// puede servir como tal — con 404 el rastreador supone un fallo temporal y conserva la
+// URL indexada; con 410 la retira. La caché es igual de corta que la del 404 a propósito:
+// deshacer el descarte tiene que verse enseguida.
+function gone(res, channel, slug, schemaFallbacks = []) {
+  console.warn(`[blog-article] GONE: slug='${slug}' corresponde a una pieza descartada; se responde 410 para que el buscador la retire del índice`);
+  return retiredOrMissing(res, channel, schemaFallbacks, {
+    status: 410,
+    eyebrow: '410',
+    heading: 'Ese artículo se retiró.',
+    lede: 'Esta dirección tuvo un artículo que ya no está publicado. No va a volver a esta dirección.',
+    title: 'Artículo retirado',
+    description: 'Esta dirección tuvo un artículo que ya no está publicado.',
+  });
+}
+
+// Las dos salidas comparten cuerpo: `noindex`, sin URL canónica —canonizar una página de
+// error la vuelve indexable— y siempre un enlace de vuelta al listado.
+function retiredOrMissing(res, channel, schemaFallbacks, { status, eyebrow, heading, lede, title, description }) {
   const config = channel?.config ?? { base_url: '' };
   const site = siteNameOf(config);
-  console.warn(`[blog-article] NOT_FOUND: slug='${slug}' no corresponde a ninguna pieza publicada de este canal`);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 's-maxage=60');
   res.setHeader('X-Robots-Tag', 'noindex');
   if (schemaFallbacks.length) res.setHeader('X-Schema-Fallbacks', String(schemaFallbacks.length));
-  return res.status(404).send(page({
+  return res.status(status).send(page({
     config,
-    title: `Artículo no encontrado · ${site}`,
-    description: 'La dirección solicitada no corresponde a ningún artículo publicado.',
+    title: `${title} · ${site}`,
+    description,
     canonical: null,
     noindex: true,
     schemaFallbacks,
     blogPath: BLOG_PATH,
     body: `<div class="hero">
-  <div class="eyebrow">404</div>
-  <h1>Ese artículo no existe.</h1>
-  <p class="lede">La dirección solicitada no corresponde a ningún artículo publicado en este canal.</p>
+  <div class="eyebrow">${escapeHtml(eyebrow)}</div>
+  <h1>${escapeHtml(heading)}</h1>
+  <p class="lede">${escapeHtml(lede)}</p>
   <div class="meta"><span><a href="${BLOG_PATH}">Ver todos los artículos</a></span></div>
 </div>`,
   }));

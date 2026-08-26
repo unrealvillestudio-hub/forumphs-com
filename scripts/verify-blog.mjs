@@ -23,7 +23,48 @@ const PIECES = [
   { id: 'ddddeeee-ffff-0000-1111-222233334444', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
     domain: 'sin-catalogo', status: 'published', created_at: '2026-08-05T10:00:00Z',
     assets: { copy: { title: 'Dominio fuera del catálogo', raw: 'Cuerpo sin tema.' } } },
+  // DESCARTADA: `status` sigue en 'published' —el descarte es un sello, no un cambio de
+  // estado— y por eso el filtro tiene que mirar `discarded_at` y no `status`.
+  { id: '11112222-3333-4444-5555-666677778888', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
+    domain: 'pieza-retirada', status: 'published', created_at: '2026-08-19T10:00:00Z',
+    discarded_at: '2026-08-23T20:39:33Z',
+    assets: { copy: { title: 'Pieza retirada por calidad', raw: 'Cuerpo de la pieza retirada.' } } },
 ];
+
+// Pieza EDITADA después de publicarse: su `dateModified` no puede ser una copia de
+// `datePublished`.
+PIECES[1].edited_at = '2026-08-25T09:30:00Z';
+
+// Par de traducción. Vive APARTE y solo entra en escena cuando `withTranslations` lo
+// pide: el caso por defecto —ninguna pieza con `translation_key`— es el que hay hoy en la
+// base, y la prueba que importa es que en ese caso NO se emita ni un `hreflang`.
+const TRANSLATED = [
+  { id: '99990000-1111-2222-3333-444455556666', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
+    domain: 'par-de-idiomas', status: 'published', created_at: '2026-08-24T10:00:00Z',
+    assets: { copy: { title: 'Versión en español', raw: 'Cuerpo en español.' }, language: 'es', translation: { key: 'par-uno' } } },
+  { id: '77778888-9999-aaaa-bbbb-ccccddddeeee', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
+    domain: 'par-de-idiomas', status: 'published', created_at: '2026-08-24T11:00:00Z',
+    assets: { copy: { title: 'English version', raw: 'Body in English.' }, language: 'en-US', translation: { key: 'par-uno' } } },
+];
+let withTranslations = false;
+
+// ── La marca N+1 ────────────────────────────────────────────────────────────────────
+// Otra marca, de otro rubro, otro país, otro idioma, otro `platform_key` y otro dominio.
+// Existe solo como DATO: no hay una línea de código que la nombre fuera de este fixture.
+// Que el mismo build la sirva es la prueba de que el renderizador es eje y no instancia.
+const OTHER_BRAND = 'OtraMarcaOtroRubro';
+const OTHER_BRAND_CHANNELS = {
+  [OTHER_BRAND]: { brand_id: OTHER_BRAND, platform_key: 'otro_chan', provider: 'vercel_html', active: true,
+    config: { base_url: 'https://otra-marca.example.invalid', locale: 'en-CA', items_per_page: 10,
+              related_count: 1, site_name: 'Another Brand', blog_label: 'Journal' } },
+};
+const OTHER_BRAND_PIECES = {
+  [OTHER_BRAND]: [
+    { id: 'abcd0001-0000-0000-0000-000000000001', brand_id: OTHER_BRAND, platform: 'otro_chan', format: 'post',
+      domain: 'another-genome', status: 'published', created_at: '2026-08-21T10:00:00Z',
+      assets: { copy: { title: 'A piece that belongs to nobody else', raw: 'Body of the other brand.' }, language: 'en-CA' } },
+  ],
+};
 
 const CHANNEL_ROW = { brand_id: 'BrandUnderTest', platform_key: 'chan_key', provider: 'vercel_html',
   config: { base_url: 'https://site.example.invalid/', template: 'editorial', items_per_page: 2, related_count: 2, site_name: 'Sitio de Prueba' }, active: true };
@@ -46,6 +87,7 @@ let scenario = 'happy';
 let topicScenario = 'happy';
 globalThis.fetch = async (url) => {
   const u = String(url);
+  const askedBrand = decodeURIComponent(/brand_id=eq\.([^&]+)/.exec(u)?.[1] ?? '');
   const isChannel = u.includes('brand_publish_channels');
   if (isChannel) {
     if (scenario === 'no_table') return json(404, { code: 'PGRST205', message: 'Could not find the table \'intel.brand_publish_channels\' in the schema cache' });
@@ -53,7 +95,11 @@ globalThis.fetch = async (url) => {
     if (scenario === 'ambiguous') return json(200, [CHANNEL_ROW, { ...CHANNEL_ROW, platform_key: 'otro_key' }]);
     if (scenario === 'no_active_col' && u.includes('active=is.true'))
       return json(400, { code: '42703', message: 'column brand_publish_channels.active does not exist' });
-    return json(200, [CHANNEL_ROW]);
+    // La tabla responde por MARCA. Es la única forma de que la prueba multimarca pruebe
+    // algo: si el simulador devolviera siempre la misma fila, dos BRAND_ID distintos
+    // servirían el mismo catálogo por culpa del simulador y no del código.
+    const row = OTHER_BRAND_CHANNELS[askedBrand];
+    return json(200, [row ?? CHANNEL_ROW]);
   }
   if (u.includes('brand_topics')) {
     if (topicScenario === 'no_table') return json(404, { code: 'PGRST205', message: 'Could not find the table \'intel.brand_topics\' in the schema cache' });
@@ -68,10 +114,23 @@ globalThis.fetch = async (url) => {
   if (u.includes('slug')) return json(400, { code: '42703', message: 'column content_pieces.slug does not exist' });
   if (scenario === 'no_published_at' && u.includes('published_at'))
     return json(400, { code: '42703', message: 'column content_pieces.published_at does not exist' });
+  if (scenario === 'no_discarded_at' && u.includes('discarded_at'))
+    return json(400, { code: '42703', message: 'column content_pieces.discarded_at does not exist' });
   if (u.includes('published_at') && scenario !== 'no_published_at') {
     // la columna existe pero viene NULL en estas filas
   }
-  let rows = PIECES.map(p => ({ ...p, published_at: null }));
+  if (OTHER_BRAND_PIECES[askedBrand]) {
+    const own = OTHER_BRAND_PIECES[askedBrand]
+      .map(p => ({ published_at: null, edited_at: null, updated_at: null, discarded_at: null, ...p }));
+    const pk = /platform=eq\.([^&]+)/.exec(u);
+    return json(200, pk ? own.filter(r => r.platform === decodeURIComponent(pk[1])) : own);
+  }
+  let rows = (withTranslations ? [...PIECES, ...TRANSLATED] : PIECES)
+    .map(p => ({ published_at: null, edited_at: null, updated_at: null, discarded_at: null, ...p }));
+  // El descarte se filtra en PostgREST, no en el renderizador: el simulador tiene que
+  // honrarlo o la prueba no probaría nada.
+  if (u.includes('discarded_at=is.null')) rows = rows.filter(r => !r.discarded_at);
+  else if (u.includes('discarded_at=not.is.null')) rows = rows.filter(r => Boolean(r.discarded_at));
   const m = /platform=eq\.([^&]+)/.exec(u);
   if (m) rows = rows.filter(r => r.platform === decodeURIComponent(m[1]));
   const d = /domain=eq\.([^&]+)/.exec(u);
@@ -126,7 +185,7 @@ res = mockRes(); await blogArticle(mockReq({ slug }), res);
 check('status 200', res.statusCode === 200, res.statusCode);
 check('cuerpo del artículo en HTML', res.body.includes('Primer párrafo.'));
 check('HTML de la DB escapado, no inyectado', res.body.includes('&lt;b&gt;párrafo&lt;/b&gt;') && !res.body.includes('Segundo <b>párrafo</b>'));
-check('JSON-LD Article', res.body.includes('"@type":"Article"'));
+check('JSON-LD BlogPosting (subclase de Article, más preciso para un blog)', res.body.includes('"@type":"BlogPosting"'));
 check('canonical del artículo', res.body.includes(`<link rel="canonical" href="https://site.example.invalid/blog/${slug}">`));
 check('og:image desde assets.image.url', res.body.includes('og:image" content="https://cdn.example.invalid/a.png"'));
 check('datePublished desde assets.publication', res.body.includes('"datePublished":"2026-08-22T00:00:00.000Z"'));
@@ -277,6 +336,177 @@ const INDEX = src('api/blog-index.js');
 check('la etiqueta impresa proviene solo de public_label',
   (INDEX.match(/class="topic"/g) || []).length === 1
   && /p\.public_label \? .*escapeHtml\(p\.public_label\)/.test(INDEX));
+
+console.log('\n── 13 · 🔴 EL BUG · una pieza DESCARTADA no se lista, no se sirve y no se envía a Google ──');
+// Los tres consumidores leen por `fetchPieces`. Esta sección los prueba a los tres, y no
+// supone que corregir uno haya corregido a los otros.
+scenario = 'happy'; topicScenario = 'happy';
+const RETIRADA = 'Pieza retirada por calidad';
+res = mockRes(); await blogIndex(mockReq(), res);
+const p1 = res.body;
+res = mockRes(); await blogIndex(mockReq({ page: 2 }), res);
+const p2 = res.body;
+res = mockRes(); await blogIndex(mockReq({ page: 3 }), res);
+check('LISTADO: la descartada no aparece en ninguna página', ![p1, p2, res.body].some((b) => b.includes(RETIRADA)));
+check('LISTADO: la viva sigue apareciendo', p1.includes('El acta es la única prueba'));
+
+res = mockRes(); await sitemap(mockReq(), res);
+const sitemapXml = res.body;
+check('SITEMAP: la descartada no se envía a Google', !sitemapXml.includes('pieza-retirada'));
+check('SITEMAP: sigue enviando las 4 vivas', (sitemapXml.match(/<loc>https:\/\/site\.example\.invalid\/blog\//g) || []).length === 4,
+  (sitemapXml.match(/<loc>https:\/\/site\.example\.invalid\/blog\//g) || []).length);
+
+// El slug derivado de la descartada, calculado igual que lo hace el renderizador.
+const slugRetirada = 'pieza-retirada-11112222';
+res = mockRes(); await blogArticle(mockReq({ slug: slugRetirada }), res);
+check('ARTÍCULO: URL directa de la descartada devuelve 410, no 404 y no 200', res.statusCode === 410, res.statusCode);
+check('ARTÍCULO: el 410 va noindex', res.headers['x-robots-tag'] === 'noindex');
+check('ARTÍCULO: el 410 no publica el cuerpo retirado', !res.body.includes('Cuerpo de la pieza retirada.'));
+check('ARTÍCULO: el 410 no se canoniza a sí mismo', !res.body.includes('rel="canonical"'));
+check('ARTÍCULO: el 410 no es callejón sin salida', res.body.includes('Ver todos los artículos'));
+
+res = mockRes(); await blogArticle(mockReq({ slug: 'jamas-existio' }), res);
+check('ARTÍCULO: un slug que nunca existió sigue dando 404, no 410', res.statusCode === 404, res.statusCode);
+
+console.log('\n── 13b · Sin columna discarded_at → degradado RUIDOSO, y el 410 no se inventa ──');
+scenario = 'no_discarded_at';
+res = mockRes(); await blogIndex(mockReq({ debug: 'schema' }), res);
+check('sin 500', res.statusCode === 200, res.statusCode);
+check('el rastro dice que lo descartado se sigue sirviendo',
+  JSON.stringify(res._json.schema_fallbacks).includes('NO SE PUEDE FILTRAR LO DESCARTADO'),
+  JSON.stringify(res._json.schema_fallbacks));
+res = mockRes(); await blogArticle(mockReq({ slug: 'jamas-existio' }), res);
+check('sin la columna, el artículo ausente cae a 404 y no a un 410 inventado', res.statusCode === 404, res.statusCode);
+scenario = 'happy';
+
+console.log('\n── 14 · JSON-LD: BlogPosting, dateModified real, imagen y migas ──');
+res = mockRes(); await blogIndex(mockReq(), res);
+const slugEditada = /href="\/blog\/(el-acta-como-instrumento-987c1631)"/.exec(res.body)?.[1]
+  ?? /href="\/blog\/([^"]*987c1631)"/.exec(p1 + p2)?.[1];
+res = mockRes(); await blogArticle(mockReq({ slug: slugEditada }), res);
+check('slug de la pieza editada resuelto', res.statusCode === 200, `${slugEditada} → ${res.statusCode}`);
+const ldBlocks = [...res.body.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+  .map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
+const posting = ldBlocks.find((b) => b['@type'] === 'BlogPosting');
+const crumbs = ldBlocks.find((b) => b['@type'] === 'BreadcrumbList');
+check('el tipo es BlogPosting, no Article', Boolean(posting) && !ldBlocks.some((b) => b['@type'] === 'Article'));
+check('cada bloque JSON-LD es JSON válido por separado', ldBlocks.length >= 2, ldBlocks.length);
+check('todo bloque declara @context', ldBlocks.every((b) => b['@context'] === 'https://schema.org'));
+check('dateModified sale de edited_at', posting?.dateModified === '2026-08-25T09:30:00.000Z', posting?.dateModified);
+check('dateModified ES DISTINTO de datePublished', posting?.dateModified !== posting?.datePublished,
+  `${posting?.datePublished} / ${posting?.dateModified}`);
+check('article:modified_time en el <head>', res.body.includes('property="article:modified_time" content="2026-08-25T09:30:00.000Z"'));
+check('BreadcrumbList de tres niveles', crumbs?.itemListElement?.length === 3, crumbs?.itemListElement?.length);
+check('las migas van portada → listado → artículo',
+  crumbs?.itemListElement?.[0]?.item === 'https://site.example.invalid/'
+  && crumbs?.itemListElement?.[1]?.item === 'https://site.example.invalid/blog'
+  && crumbs?.itemListElement?.[2]?.item === `https://site.example.invalid/blog/${slugEditada}`,
+  JSON.stringify(crumbs?.itemListElement?.map((i) => i.item)));
+
+console.log('\n── 14b · La pieza CON imagen la declara en el schema ──');
+res = mockRes(); await blogArticle(mockReq({ slug: 'el-acta-como-instrumento-8cdaddb1' }), res);
+const conImagen = [...res.body.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+  .map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<'))).find((b) => b['@type'] === 'BlogPosting');
+check('image en el structured data', Array.isArray(conImagen?.image) && conImagen.image[0] === 'https://cdn.example.invalid/a.png', JSON.stringify(conImagen?.image));
+check('dateModified nunca queda ausente', Boolean(conImagen?.dateModified), conImagen?.dateModified);
+
+console.log('\n── 15 · El listado: ItemList, Organization y WebSite ──');
+res = mockRes(); await blogIndex(mockReq(), res);
+const idxLd = [...res.body.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+  .map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
+const byType = (t) => idxLd.find((b) => b['@type'] === t);
+check('Blog presente', Boolean(byType('Blog')));
+check('ItemList presente y con las piezas de la página', byType('ItemList')?.itemListElement?.length === 2,
+  byType('ItemList')?.itemListElement?.length);
+check('las posiciones del ItemList son absolutas en la página 1', byType('ItemList')?.itemListElement?.[0]?.position === 1);
+check('Organization presente', Boolean(byType('Organization')));
+check('WebSite presente', Boolean(byType('WebSite')));
+check('sin logo en el canal, Organization no inventa uno', !('logo' in (byType('Organization') ?? {})));
+
+res = mockRes(); await blogIndex(mockReq({ page: 2 }), res);
+const idx2 = [...res.body.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+  .map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<'))).find((b) => b['@type'] === 'ItemList');
+check('la página 2 no repite las posiciones de la 1', idx2?.itemListElement?.[0]?.position === 3, idx2?.itemListElement?.[0]?.position);
+
+console.log('\n── 16 · Paginación declarada: rel=prev / rel=next en las DOS páginas ──');
+res = mockRes(); await blogIndex(mockReq(), res);
+check('página 1: sin rel=prev', !res.body.includes('<link rel="prev"'));
+check('página 1: con rel=next → página 2', res.body.includes('<link rel="next" href="https://site.example.invalid/blog?page=2">'));
+res = mockRes(); await blogIndex(mockReq({ page: 2 }), res);
+check('página 2: rel=prev apunta a /blog sin ?page=1', res.body.includes('<link rel="prev" href="https://site.example.invalid/blog">'));
+// Con 4 piezas vivas y items_per_page=2 la 2 es la última: declarar un `next` hacia una
+// página vacía mandaría al rastreador a una URL sin contenido.
+check('página 2, que es la última: sin rel=next', !res.body.includes('<link rel="next"'));
+res = mockRes(); await blogIndex(mockReq({ page: 2 }), res);
+check('el pager visible también apunta a /blog sin ?page=1', res.body.includes('<a href="/blog" rel="prev">'));
+
+console.log('\n── 17 · hreflang: NADA cuando no hay par, recíproco cuando lo hay ──');
+withTranslations = false;
+res = mockRes(); await blogArticle(mockReq({ slug: 'el-acta-como-instrumento-8cdaddb1' }), res);
+check('sin par de idiomas no se emite ni un alternate', !res.body.includes('rel="alternate"'));
+check('tampoco un x-default suelto', !res.body.includes('x-default'));
+
+withTranslations = true;
+res = mockRes(); await blogArticle(mockReq({ slug: 'par-de-idiomas-99990000' }), res);
+check('la versión ES resuelve', res.statusCode === 200, res.statusCode);
+const altEs = [...res.body.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/g)].map((m) => [m[1], m[2]]);
+check('emite es, en-US y x-default', altEs.length === 3, JSON.stringify(altEs));
+check('se declara a sí misma', altEs.some(([l, h]) => l === 'es' && h.endsWith('/blog/par-de-idiomas-99990000')));
+check('declara a su par', altEs.some(([l, h]) => l === 'en-US' && h.endsWith('/blog/par-de-idiomas-77778888')));
+check('x-default cae en la del idioma del canal (es-PA → es)',
+  altEs.some(([l, h]) => l === 'x-default' && h.endsWith('/blog/par-de-idiomas-99990000')), JSON.stringify(altEs));
+
+res = mockRes(); await blogArticle(mockReq({ slug: 'par-de-idiomas-77778888' }), res);
+const altEn = [...res.body.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)">/g)].map((m) => [m[1], m[2]]);
+check('la versión EN emite exactamente los mismos alternates (recíproco)',
+  JSON.stringify(altEn) === JSON.stringify(altEs), `${JSON.stringify(altEn)} vs ${JSON.stringify(altEs)}`);
+
+console.log('\n── 18 · lang del <html>: el de la PIEZA, no el del canal ──');
+check('pieza en inglés en canal es-PA → lang="en-US"', res.body.includes('<html lang="en-US">'), /<html lang="[^"]*"/.exec(res.body)?.[0]);
+check('og:locale sigue al idioma de la pieza', res.body.includes('property="og:locale" content="en_US"'));
+check('inLanguage del JSON-LD no contradice al <html>',
+  JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(res.body)[1].replace(/\\u003c/g, '<')).inLanguage === 'en-US');
+res = mockRes(); await blogArticle(mockReq({ slug: 'par-de-idiomas-99990000' }), res);
+check('pieza en español en canal es-PA → gana el locale completo del canal', res.body.includes('<html lang="es-PA">'), /<html lang="[^"]*"/.exec(res.body)?.[0]);
+withTranslations = false;
+res = mockRes(); await blogArticle(mockReq({ slug: 'el-acta-como-instrumento-8cdaddb1' }), res);
+check('pieza sin idioma declarado → manda el canal, no se inventa nada', res.body.includes('<html lang="es-PA">'));
+
+console.log('\n── 19 · ?debug=schema no es rastreable ──');
+res = mockRes(); await blogIndex(mockReq({ debug: 'schema' }), res);
+check('X-Robots-Tag noindex en la vista de diagnóstico', /noindex/.test(res.headers['x-robots-tag'] ?? ''), res.headers['x-robots-tag']);
+check('sigue sin cachearse', res.headers['cache-control'] === 'no-store');
+
+console.log('\n── 20 · MULTIMARCA · el mismo build, dos BRAND_ID, dos catálogos ──');
+// Es el test que decide si la extracción del renderizador a un repo compartido puede
+// ocurrir: si el mismo código sirve dos marcas sin tocarse, la marca es entorno y dato,
+// no código.
+scenario = 'happy'; topicScenario = 'happy'; withTranslations = false;
+const brandSaved = process.env.BRAND_ID;
+
+process.env.BRAND_ID = 'BrandUnderTest';
+res = mockRes(); await blogIndex(mockReq(), res);
+const catalogoA = res.body;
+res = mockRes(); await sitemap(mockReq(), res);
+const sitemapA = res.body;
+
+process.env.BRAND_ID = OTHER_BRAND;
+res = mockRes(); await blogIndex(mockReq(), res);
+const catalogoB = res.body;
+res = mockRes(); await sitemap(mockReq(), res);
+const sitemapB = res.body;
+process.env.BRAND_ID = brandSaved;
+
+check('marca A sirve SU catálogo', catalogoA.includes('El acta es la única prueba') && !catalogoA.includes('A piece that belongs to nobody else'));
+check('marca B sirve SU catálogo', catalogoB.includes('A piece that belongs to nobody else') && !catalogoB.includes('El acta es la única prueba'));
+check('cada marca en SU dominio', catalogoA.includes('https://site.example.invalid/blog') && catalogoB.includes('https://otra-marca.example.invalid/blog'));
+check('ninguna filtra el dominio de la otra', !catalogoA.includes('otra-marca.example.invalid') && !catalogoB.includes('site.example.invalid'));
+check('cada sitemap lista solo lo suyo',
+  sitemapA.includes('site.example.invalid/blog/') && !sitemapA.includes('otra-marca')
+  && sitemapB.includes('otra-marca.example.invalid/blog/') && !sitemapB.includes('site.example.invalid'));
+check('el idioma sale del canal de cada una', catalogoA.includes('<html lang="es-PA">') && catalogoB.includes('<html lang="en-CA">'));
+check('el rótulo del listado sale del canal, no del repo', catalogoB.includes('>Journal</div>') && catalogoA.includes('>Artículos</div>'));
+check('el nombre del sitio sale del canal', catalogoB.includes('Another Brand') && !catalogoB.includes('Sitio de Prueba'));
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);

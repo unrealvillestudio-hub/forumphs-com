@@ -277,22 +277,65 @@ export function derivedBaseUrl(req) {
 // entornos) se PIDEN. Si la DB no las tiene, se reintenta sin ellas y queda rastro.
 
 const PIECE_BASE = ['id', 'brand_id', 'platform', 'format', 'domain', 'status', 'created_at', 'assets'];
-const PIECE_OPTIONAL = ['slug', 'published_at'];
+const PIECE_OPTIONAL = ['slug', 'published_at', 'edited_at', 'updated_at', 'discarded_at'];
 
-export async function fetchPieces(channel, { limit = 50, offset = 0, domain = null } = {}) {
+// `status = 'published'` NO alcanza para que una pieza sea servible. Una pieza descartada
+// conserva su `status` y suma `discarded_at`: el descarte es un sello, no un cambio de
+// estado. Sin este filtro la pieza se sigue listando, se sigue sirviendo por URL directa
+// y —lo más caro— se sigue enviando a Google en el sitemap.
+//
+// El filtro vive en `fetchPieces` a propósito: los TRES consumidores (listado, artículo y
+// sitemap) leen por acá, así que corregirlo en un solo sitio los cubre a los tres y no
+// hay forma de que uno quede desincronizado del otro.
+//
+//   · 'exclude' (default) → solo piezas vivas. Es lo que se sirve y lo que se indexa.
+//   · 'only'              → solo piezas descartadas. Lo usa el artículo para distinguir
+//                           «nunca existió» (404) de «existió y se retiró» (410).
+const DISCARDED_MODES = {
+  exclude: 'discarded_at=is.null',
+  only: 'discarded_at=not.is.null',
+};
+
+// Correr sin una columna opcional cuesta algo distinto en cada caso, y ese costo se
+// declara en el rastro en vez de dejarlo al lector del log. El de `discarded_at` es el
+// único que degrada hacia algo INDEXABLE, y por eso se dice completo.
+const MISSING_COLUMN_COST = {
+  slug: ' y el slug de cada pieza se deriva de domain + prefijo de id',
+  published_at: ' y el orden cae a created_at',
+  edited_at: ' y dateModified se apoya solo en updated_at',
+  updated_at: ' y dateModified se apoya solo en edited_at',
+  discarded_at: ' y NO SE PUEDE FILTRAR LO DESCARTADO: una pieza retirada por calidad se sigue listando, sirviendo e indexando',
+};
+
+export async function fetchPieces(channel, { limit = 50, offset = 0, domain = null, discarded = 'exclude' } = {}) {
   const brand = brandId();
   const schemaFallbacks = [...(channel.schema_fallbacks ?? [])];
+
+  if (!DISCARDED_MODES[discarded]) {
+    throw new ChannelError(
+      'UNKNOWN_DISCARDED_MODE',
+      `modo de descarte '${discarded}' desconocido (${Object.keys(DISCARDED_MODES).join(', ')})`,
+      500,
+    );
+  }
 
   let optional = [...PIECE_OPTIONAL];
   let rows = null;
 
-  for (let attempt = 0; attempt < 4 && rows === null; attempt++) {
+  for (let attempt = 0; attempt < 6 && rows === null; attempt++) {
     const cols = [...PIECE_BASE, ...optional];
     const order = optional.includes('published_at')
       ? 'published_at.desc.nullslast,created_at.desc'
       : 'created_at.desc';
 
     const filters = [eq('brand_id', brand), eq('status', PUBLISHED_STATUS)];
+    if (optional.includes('discarded_at')) {
+      filters.push(DISCARDED_MODES[discarded]);
+    } else if (discarded === 'only') {
+      // Sin la columna no hay forma de saber qué se descartó. Devolver «ninguna» es la
+      // respuesta honesta: el artículo cae a 404 en vez de inventar un 410.
+      return { pieces: [], schema_fallbacks: schemaFallbacks, slug_derived: !optional.includes('slug') };
+    }
     if (channel.platformKey) {
       filters.push(eq('platform', channel.platformKey));
     } else if (attempt === 0) {
@@ -313,7 +356,7 @@ export async function fetchPieces(channel, { limit = 50, offset = 0, domain = nu
       if (missing) {
         schemaFallbacks.push({
           code: 'SCHEMA_FALLBACK',
-          detail: `${CONTENT_SCHEMA}.${CONTENT_TABLE} sin columna ${missing}: se reintenta el select sin ella${missing === 'slug' ? ' y el slug de cada pieza se deriva de domain + prefijo de id' : ' y el orden cae a created_at'} — ${error.message}`,
+          detail: `${CONTENT_SCHEMA}.${CONTENT_TABLE} sin columna ${missing}: se reintenta el select sin ella${MISSING_COLUMN_COST[missing] ?? ''} — ${error.message}`,
         });
         optional = optional.filter((c) => c !== missing);
         continue;
@@ -474,6 +517,12 @@ function normalizePiece(row, topics = null) {
   // si tampoco, queda `created_at`. Ninguno de los tres es inventado.
   const stamped = row.published_at || publication.published_at || row.created_at || null;
 
+  // `dateModified` NO puede ser una copia de `datePublished`: declarar que nunca se
+  // modificó algo que sí se modificó es una señal falsa, y Google la lee. El sello real
+  // es el MÁS RECIENTE entre publicación, edición humana y última escritura de la fila.
+  // Cuando ninguno es posterior, `modified` cae sobre `stamped` y la igualdad es cierta.
+  const modified = latestStamp([stamped, row.edited_at, row.updated_at]);
+
   const body = String(copy.aife_filtered || copy.raw || '').trim();
 
   // Etiqueta de tema: la del dominio de esta pieza, si el catálogo la trajo. Sin entrada
@@ -493,7 +542,124 @@ function normalizePiece(row, topics = null) {
     public_label: topic?.public_label ?? null,
     published_at: stamped,
     published_iso: toIso(stamped),
+    modified_at: modified,
+    modified_iso: toIso(modified),
+    // Idioma DE LA PIEZA, que no tiene por qué ser el del canal: una pieza en inglés
+    // dentro de un canal `es-PA` se declara inglesa o no se declara. `null` cuando el
+    // dato no viene — el `lang` del canal manda, y no se inventa ninguno.
+    language: languageOf(assets),
+    // Clave de grupo de traducción. Es el ÚNICO eje admisible para `hreflang`: dos
+    // piezas del mismo `domain` son hermanas del mismo genoma, no traducciones una de
+    // otra, y emparejarlas por dominio produciría alternates falsos.
+    translation_key: translationKeyOf(assets),
+    discarded_at: row.discarded_at ?? null,
   };
+}
+
+// El sello más reciente de una lista de candidatos. Un valor no parseable no gana por
+// accidente: se descarta.
+function latestStamp(candidates) {
+  let bestRaw = null;
+  let bestMs = -Infinity;
+  for (const c of candidates) {
+    if (!c) continue;
+    const ms = new Date(c).getTime();
+    if (Number.isNaN(ms) || ms <= bestMs) continue;
+    bestMs = ms;
+    bestRaw = c;
+  }
+  return bestRaw;
+}
+
+// ── Idioma y grupo de traducción de la pieza ────────────────────────────────────────
+//
+// Ninguno de los dos tiene columna propia todavía: viven en `assets`, donde el productor
+// de la pieza ya los estampa. Se leen por RUTAS DECLARADAS, en orden de autoridad, y la
+// primera que traiga un valor válido gana. Ninguna ruta nombra una marca ni un idioma
+// concreto: son la forma del dato, no su valor.
+const LANGUAGE_PATHS = [
+  ['language'],
+  ['copy', 'language'],
+  ['builder_meta', 'language'],
+  ['builder_dispatch', 'language'],
+  ['builder_input', 'language'],
+];
+
+// La pieza y su traducción comparten esta clave. Mientras nadie la estampe, `hreflang`
+// no emite NADA: un alternate que apunta a una URL que no existe es peor que ninguno.
+const TRANSLATION_KEY_PATHS = [
+  ['translation_key'],
+  ['translation', 'key'],
+  ['i18n', 'key'],
+];
+
+function atPath(assets, path) {
+  let cur = assets;
+  for (const step of path) {
+    if (!cur || typeof cur !== 'object') return null;
+    cur = cur[step];
+  }
+  return typeof cur === 'string' ? cur.trim() || null : null;
+}
+
+// Etiqueta de idioma BCP-47 bien formada, o `null`. Un valor con otra forma no se
+// «arregla»: se descarta, porque un `lang` inválido en el HTML es ruido para el rastreador.
+export function normalizeLanguage(v) {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(t)) return null;
+  const [primary, ...rest] = t.split('-');
+  return [primary.toLowerCase(), ...rest].join('-');
+}
+
+export function languageOf(assets) {
+  for (const path of LANGUAGE_PATHS) {
+    const lang = normalizeLanguage(atPath(assets, path));
+    if (lang) return lang;
+  }
+  return null;
+}
+
+export function translationKeyOf(assets) {
+  for (const path of TRANSLATION_KEY_PATHS) {
+    const key = atPath(assets, path);
+    if (key) return key;
+  }
+  return null;
+}
+
+// ── Versiones de una pieza en otros idiomas ─────────────────────────────────────────
+//
+// Devuelve la lista de alternates de `piece` —ella incluida— o `[]`. El caso vacío es el
+// NORMAL mientras nadie estampe `translation_key`, y es el correcto: un `hreflang` que
+// apunta a una URL que no existe, o que etiqueta mal un idioma, hace más daño que su
+// ausencia. Por eso cada condición de abajo, al no cumplirse, devuelve `[]` en vez de
+// emitir algo aproximado.
+//
+// `defaultLanguage` es el idioma del canal: decide cuál de las versiones lleva el
+// `x-default`. Si ninguna coincide, gana la primera por orden alfabético de etiqueta —
+// una regla estable, para que las N páginas del grupo declaren el MISMO x-default.
+export function translationAlternates(pieces, piece, defaultLanguage = null) {
+  const key = piece?.translation_key;
+  if (!key) return [];
+
+  const group = (pieces ?? []).filter((p) => p.translation_key === key);
+  if (group.length < 2) return [];
+  // Sin idioma no hay etiqueta que poner; con dos piezas del mismo idioma no hay forma
+  // de saber cuál es «la» versión de ese idioma. Ninguno de los dos se adivina.
+  if (group.some((p) => !p.language)) return [];
+  if (new Set(group.map((p) => p.language)).size !== group.length) return [];
+  if (!group.some((p) => p.id === piece.id)) return [];
+
+  const sorted = [...group].sort((a, b) => a.language.localeCompare(b.language));
+  const primary = (l) => String(l).split('-')[0].toLowerCase();
+  const fallbackLang = normalizeLanguage(defaultLanguage);
+  const xDefault = (fallbackLang && sorted.find((p) => primary(p.language) === primary(fallbackLang))) || sorted[0];
+
+  return [
+    ...sorted.map((p) => ({ hreflang: p.language, slug: p.slug })),
+    { hreflang: 'x-default', slug: xDefault.slug },
+  ];
 }
 
 function toIso(v) {
