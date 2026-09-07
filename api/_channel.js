@@ -95,7 +95,7 @@ export class ChannelError extends Error {
 // Mismo patrón de `api/contact.js`: `fetch` plano. El repo no tiene `package.json` y
 // este PR no introduce uno.
 
-function env(name) {
+export function env(name) {
   const v = process.env[name];
   if (!v || !String(v).trim()) {
     throw new ChannelError(
