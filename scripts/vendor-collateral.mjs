@@ -29,6 +29,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = join(ROOT, 'assets', 'collateral');
 const FONT_DIR = join(OUT_DIR, 'fonts');
 
+// Version de Chart.js que se interioriza por defecto. Va ANCLADA, no en `latest`: el
+// documento que se sirve carga una version concreta, y este archivo tiene que traer ESA.
+// Con `latest`, el mismo comando produciria un resultado distinto dentro de seis meses y
+// nadie sabria por que dejaron de dibujarse las graficas. Se cambia con `--chart <version>`
+// y actualizando esta constante en el mismo commit.
+const PINNED_CHART = '4.4.0';
+
 // Navegador moderno: sin este User-Agent, Google Fonts devuelve `truetype` en vez de
 // `woff2` y el peso se multiplica por cuatro.
 const MODERN_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -42,7 +49,7 @@ const KEEP_SUBSETS = new Set(['latin', 'latin-ext']);
 // que ya viajan en `config.fonts_href` del canal, para que el documento y el sitio no se
 // vean con dos tipografías distintas.
 const FONT_FAMILIES = [
-  'EB+Garamond:ital,wght@0,400;0,500;0,600;1,400',
+  'EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500',
   'Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400',
   'DM+Sans:wght@300;400;500;600;700',
 ];
@@ -81,7 +88,7 @@ async function get(url, { asText = false, headers = {} } = {}) {
 
 async function vendorChart(requestedVersion) {
   const meta = JSON.parse(await get('https://registry.npmjs.org/chart.js', { asText: true }));
-  const version = requestedVersion || meta['dist-tags'].latest;
+  const version = requestedVersion || PINNED_CHART;
   const spec = meta.versions[version];
   if (!spec) throw new Error(`chart.js@${version} no existe en el registro de npm`);
 
