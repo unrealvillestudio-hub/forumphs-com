@@ -1,0 +1,75 @@
+-- Privilegios de `service_role` sobre public.collateral_links
+--
+-- Proyecto: UNRLVL (amlvyycfepwhiindxgzw).
+--
+-- YA APLICADA EN PRODUCCIÓN a mano por Sam el 2026-09-08. Este archivo NO
+-- introduce un cambio nuevo: pone en el repositorio lo que ya está en la base,
+-- para que el hueco no vuelva la próxima vez que alguien reconstruya el esquema
+-- desde las migraciones. Es idempotente y correr de nuevo no cambia nada.
+--
+-- Va en archivo aparte, sin tocar `20260908_collateral_links.sql`: esa migración
+-- ya se aplicó, y editar una migración aplicada deja el repositorio diciendo una
+-- cosa y la base otra.
+
+-- ---------------------------------------------------------------------------
+-- CAUSA RAÍZ — medida el 2026-09-08, no deducida
+-- ---------------------------------------------------------------------------
+--
+-- Los privilegios POR DEFECTO de este proyecto sobre el esquema `public` son:
+--
+--   select pg_get_userbyid(defaclrole), defaclobjtype, defaclacl::text
+--     from pg_default_acl d join pg_namespace n on n.oid = d.defaclnamespace
+--    where n.nspname = 'public';
+--   → postgres | r | {service_role=r/postgres}
+--
+-- `r` es SELECT. Y nada más. Una tabla nueva en `public` nace con `service_role`
+-- pudiendo LEER y sin poder ESCRIBIR.
+--
+-- NO lo causó el `revoke all ... from anon, authenticated` de la migración
+-- anterior: ese `REVOKE` nombra dos roles y `service_role` no es ninguno de los
+-- dos. El ACL medido antes del arreglo lo confirma —`anon` y `authenticated`
+-- ausentes, `service_role` presente con `r`—, y `public.inbound_autoresponder_config`,
+-- creada con el mismo patrón, sigue hoy con `service_role=r`: sólo necesita leer,
+-- así que nunca chocó con esto.
+--
+-- ---------------------------------------------------------------------------
+-- POR QUÉ NADIE LO HABRÍA NOTADO — que es lo que lo vuelve grave
+-- ---------------------------------------------------------------------------
+--
+-- Lo que faltaba era UPDATE, no SELECT. Y la ruta lee con SELECT y registra la
+-- apertura con UPDATE. Así que el documento se habría servido perfectamente y
+-- `recordOpen` habría fallado con 403 — atrapado por su propio `catch`, anotado
+-- como `OPEN_NOT_RECORDED` en el log, y el documento entregado igual.
+--
+-- Es decir: el diseño «el registro nunca bloquea la entrega» habría ESCONDIDO
+-- este fallo. `open_count` se habría quedado en 0 para siempre, `first_opened_at`
+-- en NULL, y la página se vería bien. La trazabilidad —la mitad del motivo por el
+-- que existe esta tabla— habría estado muerta sin una sola señal en la interfaz.
+--
+-- De ahí que el `GRANT` explícito valga lo mismo que el `REVOKE` de la migración
+-- anterior, y por la misma razón: lo que depende de un privilegio HEREDADO no se
+-- puede leer en el repositorio, y lo que no se lee no se revisa.
+
+GRANT SELECT, INSERT, UPDATE ON public.collateral_links TO service_role;
+
+-- Sin DELETE, a propósito. Un enlace no se borra: se revoca, que es un UPDATE de
+-- `revoked_at`. Las filas son el registro de qué se envió a quién y cuándo se
+-- abrió, y un registro que se puede borrar desde la misma ruta que lo escribe no
+-- es un registro. Si algún día hay que purgar filas viejas, se hace a mano y con
+-- criterio, no con el privilegio siempre puesto.
+
+-- `anon` y `authenticated` siguen sin nada, como los dejó la migración anterior.
+-- Se repite aquí para que este archivo se pueda leer solo y para que reconstruir
+-- desde migraciones no dependa del orden de aplicación.
+REVOKE ALL ON public.collateral_links FROM anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Comprobación
+-- ---------------------------------------------------------------------------
+--
+--   select relacl::text from pg_class
+--    where relname = 'collateral_links' and relnamespace = 'public'::regnamespace;
+--
+-- Esperado: {postgres=arwdDxtm/postgres,service_role=arw/postgres}
+--   · `arw` en service_role  = INSERT, SELECT, UPDATE. Sin `d`: sin DELETE.
+--   · `anon` y `authenticated` NO aparecen.

@@ -169,5 +169,66 @@ globalThis.fetch = realFetch;
 r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.31' });
 check('sin config.contact_email, la página no trae mailto:', !r.body.includes('mailto:'));
 
+// ── 15 · Wordmark — el eje no conoce ninguna marca ──────────────────────────────────
+// El sistema de marca de ForumPHs parte el wordmark en TRES: «Forum», «PH» y «s». Las dos
+// ultimas comparten familia y peso pero llevan espaciados distintos, que es lo que alinea
+// la «s» a la altura de x de «orum». Estas pruebas comprueban que el modulo dibuja lo que
+// el canal le dice, sin saber que dice.
+
+const WORDMARK = {
+  parts: [
+    { text: 'Forum', font: 'display', weight: 400, color: 'text',   tracking: '0.01em' },
+    { text: 'PH',    font: 'sans',    weight: 700, color: 'accent', tracking: '0.06em' },
+    { text: 's',     font: 'sans',    weight: 700, color: 'accent', tracking: '0.04em' },
+  ],
+};
+const TEMA = { bg: '#0E1018', accent: '#C4622D', text: '#F0EDE8', font_display: 'EB Garamond', font_sans: 'DM Sans' };
+const conConfig = (config) => { CHANNEL[0].config = config; };
+const BASE = { site_name: 'ForumPHs', base_url: 'https://forumphs.com', locale: 'es-PA', theme: TEMA };
+
+reset();
+conConfig({ ...BASE, wordmark: WORDMARK });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.40' });
+check('wordmark: las tres partes se dibujan', ['>Forum<', '>PH<', '>s<'].every((x) => r.body.includes(x)));
+check('wordmark: "Forum" toma la familia del rol display',
+  /font-family:'EB Garamond'[^>]*>Forum</.test(r.body));
+check('wordmark: "PH" y "s" toman la familia del rol sans y el peso 700',
+  (r.body.match(/font-family:'DM Sans',[^>]*font-weight:700/g) || []).length === 2);
+check('wordmark: el rol accent se resuelve al hex del canal',
+  (r.body.match(/color:#C4622D/g) || []).length === 2 && /color:#F0EDE8[^>]*>Forum</.test(r.body));
+check('wordmark: espaciados distintos en "PH" y en "s" — es lo que alinea la s',
+  r.body.includes('letter-spacing:0.06em') && r.body.includes('letter-spacing:0.04em'));
+check('wordmark: lleva aria-label con el nombre del sitio', r.body.includes('role="img" aria-label="ForumPHs"'));
+check('wordmark: ya no queda el div .site en versalitas', !r.body.includes('<div class="site">'));
+
+// Sin wordmark en el canal: respaldo declarado, no un wordmark inventado.
+conConfig({ ...BASE });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.41' });
+check('sin wordmark en el canal, cae al nombre del sitio en texto plano',
+  r.body.includes('<div class="site">ForumPHs</div>') && !r.body.includes('role="img"'));
+
+// Roles desconocidos y partes vacias: se descartan, no rompen la pagina.
+conConfig({ ...BASE, wordmark: { parts: [
+  { text: 'A', font: 'inexistente', color: 'inventado', weight: 'no-es-un-numero', tracking: 'javascript:x' },
+  { text: '' }, { notext: true },
+] } });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.42' });
+check('roles desconocidos caen a valores seguros y la pagina se sirve igual',
+  r.code === 404 && r.body.includes('>A<') && !r.body.includes('javascript:'));
+check('las partes sin texto se descartan', (r.body.match(/<span style="font-family/g) || []).length === 1);
+
+// El texto de las partes se escapa: la fila del canal no es una via de inyeccion.
+conConfig({ ...BASE, wordmark: { parts: [{ text: '<script>alert(1)</script>', font: 'sans', color: 'accent' }] } });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.43' });
+check('el texto del wordmark se escapa', !r.body.includes('<script>alert(1)') && r.body.includes('&lt;script&gt;'));
+
+// ── 16 · Favicon ────────────────────────────────────────────────────────────────────
+conConfig({ ...BASE, wordmark: WORDMARK });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.44' });
+check('las paginas de aviso declaran los cuatro iconos', [
+  'href="/favicon.ico"', 'href="/favicon-32x32.png"',
+  'href="/favicon-192x192.png"', 'href="/apple-touch-icon.png"',
+].every((x) => r.body.includes(x)));
+
 console.log(`\n${pass} correctas, ${fail} fallidas\n`);
 process.exit(fail ? 1 : 0);
