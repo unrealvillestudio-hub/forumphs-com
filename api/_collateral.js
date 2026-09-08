@@ -20,7 +20,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { ChannelError, env, brandId } from './_channel.js';
-import { escapeHtml } from './_render.js';
+import { escapeHtml, wordmarkHtml, wordmarkStyle, siteNameOf, WORDMARK_GEOMETRY } from './_render.js';
 
 const SCHEMA = 'public';
 const TABLE = 'collateral_links';
@@ -312,88 +312,12 @@ function themeOf(config) {
   return { ...NEUTRAL_THEME, ...(config?.theme && typeof config.theme === 'object' ? config.theme : {}) };
 }
 
-// ── Wordmark ────────────────────────────────────────────────────────────────────────
-//
-// Un wordmark bicolor —o tricolor— NO se puede escribir en este módulo: «Forum» en una
-// tipografía y «PHs» en otra sobre el acento es la marca de UNA marca, y este archivo es
-// eje. Pero tampoco sirve dejar sólo `site_name` en versalitas, porque entonces la marca
-// no aparece.
-//
-// Lo que es EJE aquí es la FORMA: un wordmark es una secuencia de partes, y cada parte
-// tiene un texto, un ROL tipográfico, un peso, un ROL de color y un espaciado. Lo que es
-// INSTANCIA son los valores: qué dice cada parte y qué rol le toca. La forma va en este
-// código; los valores van en `config.wordmark` de la fila del canal.
-//
-// Se resuelven ROLES, no colores ni familias literales: una parte pide `display` y
-// `accent`, y el tema del canal decide qué familia y qué hex son. Así el mismo marcado
-// sirve para una marca cuyo acento es terracota y para otra cuyo acento es cian.
-//
-// Por qué partes y no una cadena con HTML dentro: el HTML de la fila entraría sin
-// escapar en la página. Aunque esa fila la escribamos nosotros, una plantilla de marca
-// no es lugar para una vía de inyección — y la estructura por partes se valida, se
-// escapa, y no admite nada que no sea texto.
-//
-// Ejemplo de `config.wordmark`, tomado del sistema de marca de ForumPHs:
-//
-//   {"parts":[{"text":"Forum","font":"display","weight":400,"color":"text","tracking":"0.01em"},
-//             {"text":"PH",   "font":"sans",   "weight":700,"color":"accent","tracking":"0.06em"},
-//             {"text":"s",    "font":"sans",   "weight":700,"color":"accent","tracking":"0.04em"}]}
-//
-// Son TRES partes y no dos a propósito: «PH» y «s» comparten familia y peso pero llevan
-// espaciados distintos, que es lo que alinea la «s» a la altura de x de «orum». Partirlo
-// en dos daría un wordmark parecido y mal.
-
-const FONT_ROLES = { display: 'font_display', serif: 'font_serif', sans: 'font_sans' };
-const COLOR_ROLES = new Set(['text', 'text_2', 'text_3', 'accent', 'accent_2', 'warn', 'line']);
-
-// Una parte inválida NO se dibuja a medias ni tumba la página: se descarta y se anota.
-// Un wordmark torcido en una página de error es peor que el nombre en texto plano.
-function wordmarkParts(config) {
-  const raw = config?.wordmark?.parts;
-  if (!Array.isArray(raw) || raw.length === 0) return null;
-
-  const parts = [];
-  for (const p of raw) {
-    const text = typeof p?.text === 'string' ? p.text : '';
-    if (!text) continue;
-    parts.push({
-      text,
-      fontKey: FONT_ROLES[p?.font] ?? FONT_ROLES.sans,
-      weight: Number.isFinite(Number(p?.weight)) ? Math.round(Number(p.weight)) : 400,
-      colorKey: COLOR_ROLES.has(p?.color) ? p.color : 'text',
-      tracking: /^-?[0-9.]{1,6}em$/.test(String(p?.tracking ?? '')) ? String(p.tracking) : '0',
-    });
-  }
-  return parts.length ? parts : null;
-}
-
-// Devuelve el wordmark, o el nombre del sitio en versalitas si el canal no trae ninguno.
-// El respaldo no es un wordmark pobre: es texto declaradamente sin marca, que es lo
-// honesto cuando el dato falta.
-function wordmarkHtml(config, theme) {
-  const parts = wordmarkParts(config);
-  if (!parts) return `<div class="site">${escapeHtml(siteNameOfConfig(config))}</div>`;
-
-  const spans = parts.map((p) => {
-    const family = theme[p.fontKey] ?? theme.font_sans;
-    const color = theme[p.colorKey] ?? theme.text;
-    return `<span style="font-family:'${escapeHtml(family)}',Georgia,serif;font-weight:${p.weight};`
-      + `color:${escapeHtml(color)};letter-spacing:${escapeHtml(p.tracking)}">${escapeHtml(p.text)}</span>`;
-  }).join('');
-
-  // `aria-label` con el nombre del sitio: un lector de pantalla no debe deletrear las
-  // partes por separado. `inline-flex` con `align-items:baseline` es lo que mantiene las
-  // alturas relativas que define el sistema de marca.
-  return `<div class="wm" role="img" aria-label="${escapeHtml(siteNameOfConfig(config))}">${spans}</div>`;
-}
+// El wordmark lo renderiza `_render.js`, que es donde vive la implementacion UNICA:
+// la misma que usa la cabecera del blog. Dos copias iguales hoy son dos copias distintas
+// en cuanto alguien ajuste una — y aqui ya paso con las etiquetas de icono.
 
 export function siteNameOfConfig(config) {
-  if (config?.site_name) return String(config.site_name);
-  try {
-    return new URL(config.base_url).hostname.replace(/^www\./, '');
-  } catch (_e) {
-    return 'Material reservado';
-  }
+  return siteNameOf(config);
 }
 
 export function noticePage({ config, code, title, heading, lede, aside }) {
@@ -414,7 +338,12 @@ export function noticePage({ config, code, title, heading, lede, aside }) {
 ${FAVICON_TAGS}
 <link rel="stylesheet" href="${ASSETS}/fonts.css">
 <style>
-  :root{--bg:${t.bg};--surface:${t.surface_1};--text:${t.text};--text2:${t.text_2};--text3:${t.text_3};--line:${t.line};--accent:${t.accent}}
+  ${WORDMARK_GEOMETRY}
+  ${wordmarkStyle(config)}
+  /* Alias de los tokens que el wordmark compartido resuelve por variable: el eje pide
+     var(--terra) y var(--chalk), y aqui se atan a los valores del tema del canal. */
+  :root{--bg:${t.bg};--surface:${t.surface_1};--text:${t.text};--text2:${t.text_2};--text3:${t.text_3};--line:${t.line};--accent:${t.accent};
+        --chalk:${t.text};--chalk-72:${t.text_2};--chalk-42:${t.text_3};--terra:${t.accent};--gold:${t.warn ?? t.accent}}
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;
        background:var(--bg);color:var(--text);font-family:'${t.font_sans}',system-ui,-apple-system,sans-serif;
@@ -434,7 +363,7 @@ ${FAVICON_TAGS}
   <h1>${escapeHtml(heading)}</h1>
   <p>${escapeHtml(lede)}</p>
   ${aside ? `<div class="aside">${escapeHtml(aside)}${email ? ` <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : ''}</div>` : ''}
-  ${wordmarkHtml(config, t)}
+  ${wordmarkHtml(config, { size: 'sm' })}
 </main></body></html>`;
 }
 

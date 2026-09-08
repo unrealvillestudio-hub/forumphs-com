@@ -177,7 +177,7 @@ check('sin config.contact_email, la página no trae mailto:', !r.body.includes('
 
 const WORDMARK = {
   parts: [
-    { text: 'Forum', font: 'display', weight: 400, color: 'text',   tracking: '0.01em' },
+    { text: 'Forum', font: 'display', weight: 400, color: '#ffffff', tracking: '0.01em' },
     { text: 'PH',    font: 'sans',    weight: 700, color: 'accent', tracking: '0.06em' },
     { text: 's',     font: 'sans',    weight: 700, color: 'accent', tracking: '0.04em' },
   ],
@@ -190,14 +190,27 @@ reset();
 conConfig({ ...BASE, wordmark: WORDMARK });
 r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.40' });
 check('wordmark: las tres partes se dibujan', ['>Forum<', '>PH<', '>s<'].every((x) => r.body.includes(x)));
-check('wordmark: "Forum" toma la familia del rol display',
-  /font-family:'EB Garamond'[^>]*>Forum</.test(r.body));
-check('wordmark: "PH" y "s" toman la familia del rol sans y el peso 700',
-  (r.body.match(/font-family:'DM Sans',[^>]*font-weight:700/g) || []).length === 2);
-check('wordmark: el rol accent se resuelve al hex del canal',
-  (r.body.match(/color:#C4622D/g) || []).length === 2 && /color:#F0EDE8[^>]*>Forum</.test(r.body));
+check('wordmark: geometría portada del vFINAL — inline-flex y baseline',
+  r.body.includes('.wm{display:inline-flex;align-items:baseline;gap:0;line-height:1}'));
+check('wordmark: "Forum" toma la familia del rol display, en regla generada del dato',
+  /\.wm>span:nth-child\(1\)\{font-family:'EB Garamond',serif;font-weight:400/.test(r.body));
+check('wordmark: "PH" y "s" toman el rol sans con peso 700',
+  (r.body.match(/font-family:'DM Sans',serif;font-weight:700/g) || []).length === 2);
+check('wordmark: el color va por VARIABLE, nunca por literal en la regla',
+  r.body.includes('--wm-c1:var(--terra)') && r.body.includes('--wm-c2:var(--terra)')
+  && !/nth-child\(2\)[^}]*#C4622D/.test(r.body));
+check('wordmark: el valor exacto del sistema de marca viaja en su propia variable',
+  r.body.includes('--wm-c0:#ffffff'));
 check('wordmark: espaciados distintos en "PH" y en "s" — es lo que alinea la s',
   r.body.includes('letter-spacing:0.06em') && r.body.includes('letter-spacing:0.04em'));
+
+// La invariante que el sistema declara y que no se deduce del marcado: las TRES partes
+// comparten el MISMO font-size. Si alguien reduce la «s», rompe la alineación de alturas.
+check('wordmark: las tres partes comparten font-size — ninguna regla de parte lo fija',
+  !/\.wm>span:nth-child\(\d\)\{[^}]*font-size/.test(r.body));
+check('wordmark: el tamaño lo gobierna la clase, no la parte',
+  /\.wm-sm>span\{font-size:18px\}/.test(r.body) && r.body.includes('class="wm wm-sm"'));
+
 check('wordmark: lleva aria-label con el nombre del sitio', r.body.includes('role="img" aria-label="ForumPHs"'));
 check('wordmark: ya no queda el div .site en versalitas', !r.body.includes('<div class="site">'));
 
@@ -205,7 +218,7 @@ check('wordmark: ya no queda el div .site en versalitas', !r.body.includes('<div
 conConfig({ ...BASE });
 r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.41' });
 check('sin wordmark en el canal, cae al nombre del sitio en texto plano',
-  r.body.includes('<div class="site">ForumPHs</div>') && !r.body.includes('role="img"'));
+  r.body.includes('>ForumPHs</span>') && !r.body.includes('role="img"'));
 
 // Roles desconocidos y partes vacias: se descartan, no rompen la pagina.
 conConfig({ ...BASE, wordmark: { parts: [
@@ -215,7 +228,8 @@ conConfig({ ...BASE, wordmark: { parts: [
 r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.42' });
 check('roles desconocidos caen a valores seguros y la pagina se sirve igual',
   r.code === 404 && r.body.includes('>A<') && !r.body.includes('javascript:'));
-check('las partes sin texto se descartan', (r.body.match(/<span style="font-family/g) || []).length === 1);
+check('las partes sin texto se descartan',
+  (r.body.match(/<span class="wm[^"]*"[^>]*>(<span>[^<]*<\/span>)+<\/span>/) || [''])[0].match(/<span>/g).length === 1);
 
 // El texto de las partes se escapa: la fila del canal no es una via de inyeccion.
 conConfig({ ...BASE, wordmark: { parts: [{ text: '<script>alert(1)</script>', font: 'sans', color: 'accent' }] } });
