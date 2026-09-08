@@ -9,6 +9,11 @@
 // dominios —y entonces la junta directiva ve el informe sin gráficas ni tipografías—, y
 // un CDN ajeno puede cambiar de versión sin avisar.
 //
+// `localizeDocument(html)` hace además lo propio del documento: reescribe sus referencias
+// remotas a las rutas locales y le inserta las cuatro etiquetas de icono, para que salga
+// con identidad de pestaña propia en vez de depender de que el navegador resuelva
+// `/favicon.ico` por su cuenta.
+//
 // QUÉ PRODUCE, todo bajo `assets/collateral/`:
 //   · `chart.umd.min.js`   — Chart.js, tomado del tarball oficial de npm
 //   · `fonts.css`          — las @font-face con las URL reescritas a rutas locales
@@ -24,6 +29,10 @@ import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Las cuatro etiquetas se definen en el modulo que sirve las paginas de aviso. Se importan
+// en vez de repetirse: dos listas iguales hoy son dos listas distintas manana.
+import { FAVICON_TAGS } from '../api/_collateral.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = join(ROOT, 'assets', 'collateral');
@@ -179,6 +188,33 @@ export function localizeDocument(html) {
     changes.push('preconnect a Google Fonts');
     return '';
   });
+
+  // ── Iconos ────────────────────────────────────────────────────────────────────────
+  // Sin estas etiquetas el navegador cae a resolver `/favicon.ico` por su cuenta, y el
+  // documento sale con la pestaña en blanco o con el icono que el navegador tuviera
+  // cacheado del sitio. Declararlas le da identidad propia y no depende de una convención
+  // implícita.
+  //
+  // IDEMPOTENTE: si el documento ya declara algún icono, no se toca. Volver a pasar el
+  // script por un documento ya interiorizado no debe apilar etiquetas, y un documento que
+  // trae su propio icono —uno embebido en `data:`, por ejemplo— sabe algo que este script
+  // no: sustituirlo sería decidir por él.
+  if (/<link\b[^>]*rel=["'](?:shortcut )?(?:icon|apple-touch-icon)["']/i.test(out)) {
+    changes.push('iconos: el documento ya declara los suyos, no se toca');
+  } else {
+    const tags = `\n${FAVICON_TAGS}`;
+    // Detrás del `<title>` si lo hay, para que el icono viaje junto al nombre de la
+    // pestaña; si no, justo después de abrir el `<head>`.
+    if (/<\/title>/i.test(out)) {
+      out = out.replace(/<\/title>/i, (m) => m + tags);
+      changes.push('iconos: cuatro etiquetas tras el <title>');
+    } else if (/<head\b[^>]*>/i.test(out)) {
+      out = out.replace(/<head\b[^>]*>/i, (m) => m + tags);
+      changes.push('iconos: cuatro etiquetas al abrir el <head>');
+    } else {
+      changes.push('iconos: NO insertados — el documento no tiene <head> ni <title>');
+    }
+  }
 
   // Un solo `preconnect` sobrante bastaría para filtrar la IP: se verifica que no quede
   // ninguna referencia viva antes de dar el documento por interiorizado.

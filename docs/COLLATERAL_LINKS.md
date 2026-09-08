@@ -43,6 +43,7 @@ móvil» de «lo abrió un rastreador», no para perfilar a nadie.
 | `scripts/vendor-collateral.mjs` | repo | Regenera lo anterior desde npm y Google Fonts. |
 | `scripts/collateral-link.mjs` | repo | Genera un token y arma el `INSERT`. **No toca la base de datos.** |
 | `scripts/verify-bim.mjs` | repo | Verifica la ruta entera contra simulaciones. `node scripts/verify-bim.mjs` |
+| `favicon.ico` · `favicon-32x32.png` · `favicon-192x192.png` · `apple-touch-icon.png` | raíz | Derivados del icono oficial de marca. |
 | `public.collateral_links` | Supabase UNRLVL | La tabla. RLS sin política: sólo `service_role`. |
 | bucket `collateral` | Supabase UNRLVL | Privado. **No se hace público en ningún caso.** |
 
@@ -86,13 +87,33 @@ y en el HTML, sustituir las referencias remotas por las locales:
 ```
 
 `scripts/vendor-collateral.mjs` exporta `localizeDocument(html)`, que hace exactamente esa
-sustitución y además **devuelve las referencias remotas que hayan quedado vivas**. Una sola
-que sobreviva basta para filtrar la IP, así que conviene comprobar la lista antes de subir:
+sustitución, **inserta las cuatro etiquetas de icono** y además **devuelve las referencias
+remotas que hayan quedado vivas**. Una sola que sobreviva basta para filtrar la IP, así que
+conviene comprobar la lista antes de subir:
 
 ```bash
 grep -oE 'https?://(fonts\.(googleapis|gstatic)\.com|cdn\.jsdelivr\.net|unpkg\.com)[^"'"'"']*' documento.html
 # sin salida = interiorizado
 ```
+
+### Iconos en el documento servido
+
+`localizeDocument` inserta las mismas cuatro etiquetas que llevan las páginas de aviso,
+detrás del `<title>` si lo hay y al abrir el `<head>` si no. Sin ellas el navegador cae a
+resolver `/favicon.ico` por su cuenta, y el documento sale con la pestaña en blanco o con el
+icono que el navegador tuviera cacheado del sitio.
+
+Las cuatro etiquetas **se definen una sola vez**, en `api/_collateral.js`, y el
+interiorizador las importa. Dos listas iguales hoy son dos listas distintas en cuanto
+alguien añada un tamaño en una sola.
+
+**Es idempotente**, y de dos maneras. Volver a pasar el script por un documento ya
+interiorizado no apila etiquetas. Y un documento que **ya declara su propio icono** —uno
+embebido en `data:`, por ejemplo— no se toca: sabe algo que el script no, y sustituirlo
+sería decidir por él. En los dos casos queda anotado en `changes`, no en silencio.
+
+Si el documento no tiene ni `<head>` ni `<title>`, **no se inventa uno**: se devuelve
+`iconos: NO insertados` en `changes` para que se vea.
 
 ## Emitir un enlace
 
@@ -248,11 +269,115 @@ where brand_id = 'ForumPHs' and provider = 'vercel_html';
 Todo lo de abajo es **posterior al merge** y requiere OK explícito de Sam. El PR no aplica
 migraciones ni despliega.
 
-1. **Aplicar la migración** `supabase/migrations/20260908_collateral_links.sql` en el proyecto
-   UNRLVL (`amlvyycfepwhiindxgzw`).
+1. **Aplicar las migraciones** en el proyecto UNRLVL (`amlvyycfepwhiindxgzw`), en orden:
+   `20260908_collateral_links.sql` (tabla, índice, RLS) y después
+   `20260908_collateral_links_grants.sql` (privilegios de `service_role`). La segunda ya
+   está aplicada en producción desde el 2026-09-08; el archivo existe para que reconstruir
+   el esquema desde las migraciones no vuelva a dejar el hueco.
 2. **Crear el bucket privado** `collateral`. **No marcarlo público.**
 3. **Subir el documento** ya interiorizado a `ForumPHs/<nombre>.html`.
 4. **Emitir un enlace de prueba** a una dirección propia y recorrer la tabla de verificación.
+
+### Privilegios de `service_role` — y por qué el hueco no se vio
+
+Los privilegios **por defecto** de este proyecto sobre `public` son `{service_role=r/postgres}`
+[`medido` 2026-09-08]: una tabla nueva nace con `service_role` **pudiendo leer y sin poder
+escribir**.
+
+La ruta lee con `SELECT` y registra la apertura con `UPDATE`. Así que el documento se servía
+bien y sólo fallaba el registro — atrapado por su propio `catch`, anotado como
+`OPEN_NOT_RECORDED`, y el documento entregado igual. **El diseño «el registro nunca bloquea
+la entrega» escondía este fallo**: `open_count` se habría quedado en 0 para siempre y la
+página se habría visto perfecta. La trazabilidad, que es la mitad del motivo por el que
+existe esta tabla, habría estado muerta sin una sola señal.
+
+`20260908_collateral_links_grants.sql` deja el `GRANT SELECT, INSERT, UPDATE` explícito.
+**Sin `DELETE`, a propósito:** un enlace no se borra, se revoca —que es un `UPDATE` de
+`revoked_at`—, y un registro que se puede borrar desde la misma ruta que lo escribe no es
+un registro.
+
+```sql
+select relacl::text from pg_class
+ where relname = 'collateral_links' and relnamespace = 'public'::regnamespace;
+-- {postgres=arwdDxtm/postgres,service_role=arw/postgres}
+```
+
+> ### ⚠️ Lo que un PostgreSQL desechable NO verifica
+>
+> Las migraciones de este repositorio se validan contra un PostgreSQL local. **Esa
+> validación no cubre privilegios de rol ni RLS de Supabase**, porque `anon`,
+> `authenticated` y `service_role` **no existen en un PostgreSQL limpio**: hay que crearlos
+> a mano, y entonces se crean sin los privilegios por defecto que Supabase configura en sus
+> proyectos. Una migración puede pasar entera en local y dejar un hueco de permisos en
+> producción — y este fue el segundo hallazgo de esa clase.
+>
+> Lo que sí cubre: sintaxis, restricciones, idempotencia, orden de aplicación y el
+> comportamiento de las políticas RLS que la propia migración crea.
+>
+> Lo que hay que comprobar **contra el proyecto real**, siempre, después de aplicar:
+>
+> ```sql
+> select relacl::text, relrowsecurity from pg_class
+>  where relname = '<tabla>' and relnamespace = 'public'::regnamespace;
+> ```
+
+### Wordmark de las páginas de aviso
+
+Las páginas de vencido y de acceso no disponible cierran con el wordmark de la marca. El
+módulo es eje, así que **no lo lleva escrito**: sabe que un wordmark es una secuencia de
+partes con un rol tipográfico, un peso, un rol de color y un espaciado, y los valores salen
+de `config.wordmark` de la fila del canal. Los roles se resuelven contra `config.theme`, así
+que la misma estructura sirve para una marca con acento terracota y para otra con acento
+cian.
+
+Si el canal no trae `wordmark`, la página cierra con el nombre del sitio en versalitas. No
+es un wordmark pobre: es texto declaradamente sin marca, que es lo honesto cuando falta el
+dato.
+
+Para sembrarlo — los valores salen del sistema de marca, no de aquí:
+
+```sql
+update intel.brand_publish_channels
+set config = config || '{"wordmark":{"parts":[
+  {"text":"Forum","font":"display","weight":400,"color":"text","tracking":"0.01em"},
+  {"text":"PH","font":"sans","weight":700,"color":"accent","tracking":"0.06em"},
+  {"text":"s","font":"sans","weight":700,"color":"accent","tracking":"0.04em"}
+]}}'::jsonb
+where brand_id = 'ForumPHs' and provider = 'vercel_html';
+```
+
+**Son tres partes y no dos.** «PH» y «s» comparten familia y peso pero llevan espaciados
+distintos, y eso es lo que alinea la «s» a la altura de x de «orum»
+(`BluePrints/brands/ForumPHs/assets/ForumPHs_Amatista_Carbon_vFINAL.html`, bloque
+`WORDMARK SYSTEM`). Partirlo en dos da un wordmark parecido y mal.
+
+`font` acepta `display`, `serif` y `sans`; `color` acepta `text`, `text_2`, `text_3`,
+`accent`, `accent_2`, `warn` y `line`. Un rol desconocido cae a un valor seguro y una parte
+sin texto se descarta: un wordmark torcido en una página de error es peor que el nombre en
+texto plano.
+
+### Iconos del sitio
+
+Los cuatro derivan del icono oficial
+`BluePrints/brands/ForumPHs/assets/FPHS_favicon_deep.png` (2363×2363, RGBA, esquinas
+transparentes, círculo `#3A1F4A`):
+
+| archivo | tamaño | nota |
+|---|---|---|
+| `favicon.ico` | 16 · 32 · 48 | multi-tamaño, conserva transparencia |
+| `favicon-32x32.png` | 32 | navegadores modernos |
+| `favicon-192x192.png` | 192 | Android e instalables |
+| `apple-touch-icon.png` | 180 | **aplanado** sobre `#3A1F4A` |
+
+El `apple-touch-icon` es el único aplanado porque iOS compone la transparencia sobre negro y
+dejaría un anillo oscuro alrededor del círculo. Se aplana sobre el color del **propio
+círculo**, así que no se inventa ningún color: iOS redondea el cuadrado y el resultado es la
+marca tal cual.
+
+Las **rutas** (`/favicon.ico`, etc.) sí viven en el módulo compartido, y no son literal de
+marca: son una convención que cumple cualquier sitio, y cada despliegue sirve en ellas el
+icono de su marca. Lo que sería literal es la imagen, y la imagen está en la raíz del sitio,
+no en el eje.
 
 ### Verificación posterior al despliegue
 

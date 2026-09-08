@@ -52,6 +52,22 @@ const ASSET_TIMEOUT_MS = 15_000;
 // superficie de esta ruta no debe abrir una conexión a un tercero.
 const ASSETS = '/assets/collateral';
 
+// Iconos del sitio. Las RUTAS son eje, no instancia: `/favicon.ico` es una convención que
+// cumple cualquier sitio, y cada despliegue sirve en ella el icono de SU marca. Lo que
+// sería literal de marca es la imagen, y la imagen no está aquí — está en la raíz del
+// sitio que monta este módulo.
+//
+// Se EXPORTA porque `scripts/vendor-collateral.mjs` las inserta también en el documento
+// que interioriza. Son las mismas cuatro etiquetas en las dos superficies —la página de
+// aviso y el documento servido—, así que se definen UNA vez: dos listas iguales hoy son
+// dos listas distintas en cuanto alguien añada un tamaño en una sola.
+export const FAVICON_TAGS = [
+  '<link rel="icon" href="/favicon.ico" sizes="any">',
+  '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">',
+  '<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">',
+  '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+].join('\n');
+
 // ── Token ───────────────────────────────────────────────────────────────────────────
 
 export function generateToken() {
@@ -296,6 +312,81 @@ function themeOf(config) {
   return { ...NEUTRAL_THEME, ...(config?.theme && typeof config.theme === 'object' ? config.theme : {}) };
 }
 
+// ── Wordmark ────────────────────────────────────────────────────────────────────────
+//
+// Un wordmark bicolor —o tricolor— NO se puede escribir en este módulo: «Forum» en una
+// tipografía y «PHs» en otra sobre el acento es la marca de UNA marca, y este archivo es
+// eje. Pero tampoco sirve dejar sólo `site_name` en versalitas, porque entonces la marca
+// no aparece.
+//
+// Lo que es EJE aquí es la FORMA: un wordmark es una secuencia de partes, y cada parte
+// tiene un texto, un ROL tipográfico, un peso, un ROL de color y un espaciado. Lo que es
+// INSTANCIA son los valores: qué dice cada parte y qué rol le toca. La forma va en este
+// código; los valores van en `config.wordmark` de la fila del canal.
+//
+// Se resuelven ROLES, no colores ni familias literales: una parte pide `display` y
+// `accent`, y el tema del canal decide qué familia y qué hex son. Así el mismo marcado
+// sirve para una marca cuyo acento es terracota y para otra cuyo acento es cian.
+//
+// Por qué partes y no una cadena con HTML dentro: el HTML de la fila entraría sin
+// escapar en la página. Aunque esa fila la escribamos nosotros, una plantilla de marca
+// no es lugar para una vía de inyección — y la estructura por partes se valida, se
+// escapa, y no admite nada que no sea texto.
+//
+// Ejemplo de `config.wordmark`, tomado del sistema de marca de ForumPHs:
+//
+//   {"parts":[{"text":"Forum","font":"display","weight":400,"color":"text","tracking":"0.01em"},
+//             {"text":"PH",   "font":"sans",   "weight":700,"color":"accent","tracking":"0.06em"},
+//             {"text":"s",    "font":"sans",   "weight":700,"color":"accent","tracking":"0.04em"}]}
+//
+// Son TRES partes y no dos a propósito: «PH» y «s» comparten familia y peso pero llevan
+// espaciados distintos, que es lo que alinea la «s» a la altura de x de «orum». Partirlo
+// en dos daría un wordmark parecido y mal.
+
+const FONT_ROLES = { display: 'font_display', serif: 'font_serif', sans: 'font_sans' };
+const COLOR_ROLES = new Set(['text', 'text_2', 'text_3', 'accent', 'accent_2', 'warn', 'line']);
+
+// Una parte inválida NO se dibuja a medias ni tumba la página: se descarta y se anota.
+// Un wordmark torcido en una página de error es peor que el nombre en texto plano.
+function wordmarkParts(config) {
+  const raw = config?.wordmark?.parts;
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+
+  const parts = [];
+  for (const p of raw) {
+    const text = typeof p?.text === 'string' ? p.text : '';
+    if (!text) continue;
+    parts.push({
+      text,
+      fontKey: FONT_ROLES[p?.font] ?? FONT_ROLES.sans,
+      weight: Number.isFinite(Number(p?.weight)) ? Math.round(Number(p.weight)) : 400,
+      colorKey: COLOR_ROLES.has(p?.color) ? p.color : 'text',
+      tracking: /^-?[0-9.]{1,6}em$/.test(String(p?.tracking ?? '')) ? String(p.tracking) : '0',
+    });
+  }
+  return parts.length ? parts : null;
+}
+
+// Devuelve el wordmark, o el nombre del sitio en versalitas si el canal no trae ninguno.
+// El respaldo no es un wordmark pobre: es texto declaradamente sin marca, que es lo
+// honesto cuando el dato falta.
+function wordmarkHtml(config, theme) {
+  const parts = wordmarkParts(config);
+  if (!parts) return `<div class="site">${escapeHtml(siteNameOfConfig(config))}</div>`;
+
+  const spans = parts.map((p) => {
+    const family = theme[p.fontKey] ?? theme.font_sans;
+    const color = theme[p.colorKey] ?? theme.text;
+    return `<span style="font-family:'${escapeHtml(family)}',Georgia,serif;font-weight:${p.weight};`
+      + `color:${escapeHtml(color)};letter-spacing:${escapeHtml(p.tracking)}">${escapeHtml(p.text)}</span>`;
+  }).join('');
+
+  // `aria-label` con el nombre del sitio: un lector de pantalla no debe deletrear las
+  // partes por separado. `inline-flex` con `align-items:baseline` es lo que mantiene las
+  // alturas relativas que define el sistema de marca.
+  return `<div class="wm" role="img" aria-label="${escapeHtml(siteNameOfConfig(config))}">${spans}</div>`;
+}
+
 export function siteNameOfConfig(config) {
   if (config?.site_name) return String(config.site_name);
   try {
@@ -320,6 +411,7 @@ export function noticePage({ config, code, title, heading, lede, aside }) {
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="referrer" content="no-referrer">
 <title>${escapeHtml(title)} · ${escapeHtml(site)}</title>
+${FAVICON_TAGS}
 <link rel="stylesheet" href="${ASSETS}/fonts.css">
 <style>
   :root{--bg:${t.bg};--surface:${t.surface_1};--text:${t.text};--text2:${t.text_2};--text3:${t.text_3};--line:${t.line};--accent:${t.accent}}
@@ -334,6 +426,7 @@ export function noticePage({ config, code, title, heading, lede, aside }) {
   .aside{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--text3)}
   a{color:var(--accent)}
   .site{margin-top:30px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+  .wm{margin-top:30px;display:inline-flex;align-items:baseline;gap:0;line-height:1;font-size:18px}
   @media(max-width:520px){.card{padding:32px 24px}h1{font-size:25px}}
 </style></head>
 <body><main class="card">
@@ -341,7 +434,7 @@ export function noticePage({ config, code, title, heading, lede, aside }) {
   <h1>${escapeHtml(heading)}</h1>
   <p>${escapeHtml(lede)}</p>
   ${aside ? `<div class="aside">${escapeHtml(aside)}${email ? ` <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : ''}</div>` : ''}
-  <div class="site">${escapeHtml(site)}</div>
+  ${wordmarkHtml(config, t)}
 </main></body></html>`;
 }
 

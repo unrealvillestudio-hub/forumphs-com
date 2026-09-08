@@ -169,5 +169,111 @@ globalThis.fetch = realFetch;
 r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.31' });
 check('sin config.contact_email, la página no trae mailto:', !r.body.includes('mailto:'));
 
+// ── 15 · Wordmark — el eje no conoce ninguna marca ──────────────────────────────────
+// El sistema de marca de ForumPHs parte el wordmark en TRES: «Forum», «PH» y «s». Las dos
+// ultimas comparten familia y peso pero llevan espaciados distintos, que es lo que alinea
+// la «s» a la altura de x de «orum». Estas pruebas comprueban que el modulo dibuja lo que
+// el canal le dice, sin saber que dice.
+
+const WORDMARK = {
+  parts: [
+    { text: 'Forum', font: 'display', weight: 400, color: 'text',   tracking: '0.01em' },
+    { text: 'PH',    font: 'sans',    weight: 700, color: 'accent', tracking: '0.06em' },
+    { text: 's',     font: 'sans',    weight: 700, color: 'accent', tracking: '0.04em' },
+  ],
+};
+const TEMA = { bg: '#0E1018', accent: '#C4622D', text: '#F0EDE8', font_display: 'EB Garamond', font_sans: 'DM Sans' };
+const conConfig = (config) => { CHANNEL[0].config = config; };
+const BASE = { site_name: 'ForumPHs', base_url: 'https://forumphs.com', locale: 'es-PA', theme: TEMA };
+
+reset();
+conConfig({ ...BASE, wordmark: WORDMARK });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.40' });
+check('wordmark: las tres partes se dibujan', ['>Forum<', '>PH<', '>s<'].every((x) => r.body.includes(x)));
+check('wordmark: "Forum" toma la familia del rol display',
+  /font-family:'EB Garamond'[^>]*>Forum</.test(r.body));
+check('wordmark: "PH" y "s" toman la familia del rol sans y el peso 700',
+  (r.body.match(/font-family:'DM Sans',[^>]*font-weight:700/g) || []).length === 2);
+check('wordmark: el rol accent se resuelve al hex del canal',
+  (r.body.match(/color:#C4622D/g) || []).length === 2 && /color:#F0EDE8[^>]*>Forum</.test(r.body));
+check('wordmark: espaciados distintos en "PH" y en "s" — es lo que alinea la s',
+  r.body.includes('letter-spacing:0.06em') && r.body.includes('letter-spacing:0.04em'));
+check('wordmark: lleva aria-label con el nombre del sitio', r.body.includes('role="img" aria-label="ForumPHs"'));
+check('wordmark: ya no queda el div .site en versalitas', !r.body.includes('<div class="site">'));
+
+// Sin wordmark en el canal: respaldo declarado, no un wordmark inventado.
+conConfig({ ...BASE });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.41' });
+check('sin wordmark en el canal, cae al nombre del sitio en texto plano',
+  r.body.includes('<div class="site">ForumPHs</div>') && !r.body.includes('role="img"'));
+
+// Roles desconocidos y partes vacias: se descartan, no rompen la pagina.
+conConfig({ ...BASE, wordmark: { parts: [
+  { text: 'A', font: 'inexistente', color: 'inventado', weight: 'no-es-un-numero', tracking: 'javascript:x' },
+  { text: '' }, { notext: true },
+] } });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.42' });
+check('roles desconocidos caen a valores seguros y la pagina se sirve igual',
+  r.code === 404 && r.body.includes('>A<') && !r.body.includes('javascript:'));
+check('las partes sin texto se descartan', (r.body.match(/<span style="font-family/g) || []).length === 1);
+
+// El texto de las partes se escapa: la fila del canal no es una via de inyeccion.
+conConfig({ ...BASE, wordmark: { parts: [{ text: '<script>alert(1)</script>', font: 'sans', color: 'accent' }] } });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.43' });
+check('el texto del wordmark se escapa', !r.body.includes('<script>alert(1)') && r.body.includes('&lt;script&gt;'));
+
+// ── 16 · Favicon ────────────────────────────────────────────────────────────────────
+conConfig({ ...BASE, wordmark: WORDMARK });
+r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.44' });
+check('las paginas de aviso declaran los cuatro iconos', [
+  'href="/favicon.ico"', 'href="/favicon-32x32.png"',
+  'href="/favicon-192x192.png"', 'href="/apple-touch-icon.png"',
+].every((x) => r.body.includes(x)));
+
+// ── 17 · localizeDocument — el interiorizador del documento ─────────────────────────
+// Pura, sin red y sin base de datos: se le da HTML y se comprueba lo que devuelve.
+
+const { localizeDocument } = await import('./vendor-collateral.mjs');
+
+const DOC_ORIGEN = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head><body><canvas></canvas></body></html>`;
+
+let L = localizeDocument(DOC_ORIGEN);
+check('localize: chart.js y tipografías pasan a rutas locales',
+  L.html.includes('/assets/collateral/chart.umd.min.js') && L.html.includes('/assets/collateral/fonts.css'));
+check('localize: no queda ninguna referencia remota', L.leftovers.length === 0);
+check('localize: inserta los cuatro iconos', [
+  'href="/favicon.ico"', 'href="/favicon-32x32.png"',
+  'href="/favicon-192x192.png"', 'href="/apple-touch-icon.png"',
+].every((x) => L.html.includes(x)));
+check('localize: los iconos van detrás del <title>', /<\/title>\s*<link rel="icon" href="\/favicon\.ico"/.test(L.html));
+
+// Idempotencia: volver a pasar el script NO debe apilar etiquetas.
+const L2 = localizeDocument(L.html);
+check('localize: idempotente — no apila iconos al repetir',
+  (L2.html.match(/rel="icon"/g) || []).length === (L.html.match(/rel="icon"/g) || []).length);
+check('localize: al repetir, lo declara en vez de callarlo',
+  L2.changes.some((c) => c.includes('ya declara los suyos')));
+
+// Un documento con su propio icono sabe algo que el script no: no se le pisa.
+const PROPIO = '<html><head><title>X</title><link rel="icon" href="data:image/png;base64,AAA="></head><body></body></html>';
+const L3 = localizeDocument(PROPIO);
+check('localize: respeta el icono propio del documento',
+  L3.html.includes('data:image/png;base64,AAA=') && !L3.html.includes('/favicon-32x32.png'));
+
+// Sin <title>: entra al abrir el <head>, no se pierde.
+const L4 = localizeDocument('<html><head><meta charset="utf-8"></head><body></body></html>');
+check('localize: sin <title>, los iconos entran al abrir el <head>',
+  L4.html.includes('href="/favicon.ico"') && L4.changes.some((c) => c.includes('al abrir el <head>')));
+
+// Sin <head> no se inventa uno: se declara que no se insertaron.
+const L5 = localizeDocument('<p>fragmento suelto</p>');
+check('localize: sin <head>, no inventa uno y lo declara',
+  !L5.html.includes('favicon') && L5.changes.some((c) => c.includes('NO insertados')));
+
 console.log(`\n${pass} correctas, ${fail} fallidas\n`);
 process.exit(fail ? 1 : 0);
