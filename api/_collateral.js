@@ -56,7 +56,12 @@ const ASSETS = '/assets/collateral';
 // cumple cualquier sitio, y cada despliegue sirve en ella el icono de SU marca. Lo que
 // sería literal de marca es la imagen, y la imagen no está aquí — está en la raíz del
 // sitio que monta este módulo.
-const FAVICON_TAGS = [
+//
+// Se EXPORTA porque `scripts/vendor-collateral.mjs` las inserta también en el documento
+// que interioriza. Son las mismas cuatro etiquetas en las dos superficies —la página de
+// aviso y el documento servido—, así que se definen UNA vez: dos listas iguales hoy son
+// dos listas distintas en cuanto alguien añada un tamaño en una sola.
+export const FAVICON_TAGS = [
   '<link rel="icon" href="/favicon.ico" sizes="any">',
   '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">',
   '<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">',

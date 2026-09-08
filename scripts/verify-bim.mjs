@@ -230,5 +230,50 @@ check('las paginas de aviso declaran los cuatro iconos', [
   'href="/favicon-192x192.png"', 'href="/apple-touch-icon.png"',
 ].every((x) => r.body.includes(x)));
 
+// ── 17 · localizeDocument — el interiorizador del documento ─────────────────────────
+// Pura, sin red y sin base de datos: se le da HTML y se comprueba lo que devuelve.
+
+const { localizeDocument } = await import('./vendor-collateral.mjs');
+
+const DOC_ORIGEN = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head><body><canvas></canvas></body></html>`;
+
+let L = localizeDocument(DOC_ORIGEN);
+check('localize: chart.js y tipografías pasan a rutas locales',
+  L.html.includes('/assets/collateral/chart.umd.min.js') && L.html.includes('/assets/collateral/fonts.css'));
+check('localize: no queda ninguna referencia remota', L.leftovers.length === 0);
+check('localize: inserta los cuatro iconos', [
+  'href="/favicon.ico"', 'href="/favicon-32x32.png"',
+  'href="/favicon-192x192.png"', 'href="/apple-touch-icon.png"',
+].every((x) => L.html.includes(x)));
+check('localize: los iconos van detrás del <title>', /<\/title>\s*<link rel="icon" href="\/favicon\.ico"/.test(L.html));
+
+// Idempotencia: volver a pasar el script NO debe apilar etiquetas.
+const L2 = localizeDocument(L.html);
+check('localize: idempotente — no apila iconos al repetir',
+  (L2.html.match(/rel="icon"/g) || []).length === (L.html.match(/rel="icon"/g) || []).length);
+check('localize: al repetir, lo declara en vez de callarlo',
+  L2.changes.some((c) => c.includes('ya declara los suyos')));
+
+// Un documento con su propio icono sabe algo que el script no: no se le pisa.
+const PROPIO = '<html><head><title>X</title><link rel="icon" href="data:image/png;base64,AAA="></head><body></body></html>';
+const L3 = localizeDocument(PROPIO);
+check('localize: respeta el icono propio del documento',
+  L3.html.includes('data:image/png;base64,AAA=') && !L3.html.includes('/favicon-32x32.png'));
+
+// Sin <title>: entra al abrir el <head>, no se pierde.
+const L4 = localizeDocument('<html><head><meta charset="utf-8"></head><body></body></html>');
+check('localize: sin <title>, los iconos entran al abrir el <head>',
+  L4.html.includes('href="/favicon.ico"') && L4.changes.some((c) => c.includes('al abrir el <head>')));
+
+// Sin <head> no se inventa uno: se declara que no se insertaron.
+const L5 = localizeDocument('<p>fragmento suelto</p>');
+check('localize: sin <head>, no inventa uno y lo declara',
+  !L5.html.includes('favicon') && L5.changes.some((c) => c.includes('NO insertados')));
+
 console.log(`\n${pass} correctas, ${fail} fallidas\n`);
 process.exit(fail ? 1 : 0);

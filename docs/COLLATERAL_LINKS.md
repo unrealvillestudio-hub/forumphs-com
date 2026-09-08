@@ -87,13 +87,33 @@ y en el HTML, sustituir las referencias remotas por las locales:
 ```
 
 `scripts/vendor-collateral.mjs` exporta `localizeDocument(html)`, que hace exactamente esa
-sustitución y además **devuelve las referencias remotas que hayan quedado vivas**. Una sola
-que sobreviva basta para filtrar la IP, así que conviene comprobar la lista antes de subir:
+sustitución, **inserta las cuatro etiquetas de icono** y además **devuelve las referencias
+remotas que hayan quedado vivas**. Una sola que sobreviva basta para filtrar la IP, así que
+conviene comprobar la lista antes de subir:
 
 ```bash
 grep -oE 'https?://(fonts\.(googleapis|gstatic)\.com|cdn\.jsdelivr\.net|unpkg\.com)[^"'"'"']*' documento.html
 # sin salida = interiorizado
 ```
+
+### Iconos en el documento servido
+
+`localizeDocument` inserta las mismas cuatro etiquetas que llevan las páginas de aviso,
+detrás del `<title>` si lo hay y al abrir el `<head>` si no. Sin ellas el navegador cae a
+resolver `/favicon.ico` por su cuenta, y el documento sale con la pestaña en blanco o con el
+icono que el navegador tuviera cacheado del sitio.
+
+Las cuatro etiquetas **se definen una sola vez**, en `api/_collateral.js`, y el
+interiorizador las importa. Dos listas iguales hoy son dos listas distintas en cuanto
+alguien añada un tamaño en una sola.
+
+**Es idempotente**, y de dos maneras. Volver a pasar el script por un documento ya
+interiorizado no apila etiquetas. Y un documento que **ya declara su propio icono** —uno
+embebido en `data:`, por ejemplo— no se toca: sabe algo que el script no, y sustituirlo
+sería decidir por él. En los dos casos queda anotado en `changes`, no en silencio.
+
+Si el documento no tiene ni `<head>` ni `<title>`, **no se inventa uno**: se devuelve
+`iconos: NO insertados` en `changes` para que se vea.
 
 ## Emitir un enlace
 
