@@ -29,6 +29,13 @@ export function absoluteUrl(baseUrl, path) {
   return `${base}${p}`;
 }
 
+// Geometria del wordmark, portada verbatim del vFINAL. Es EJE: no depende de ninguna
+// marca. Se exporta porque la sirven dos superficies —la cabecera del blog y las paginas
+// de aviso de /bim— y una sola definicion es lo que impide que se separen.
+export const WORDMARK_GEOMETRY = `.wm{display:inline-flex;align-items:baseline;gap:0;line-height:1}
+.wm-xl>span{font-size:54px}.wm-lg>span{font-size:36px}.wm-md>span{font-size:26px}
+.wm-sm>span{font-size:18px}.wm-xs>span{font-size:13px}.wm-xxs>span{font-size:10px}`;
+
 const STYLE = `
 :root{
   --void:#0A090C;--carbon:#111018;--graphite:#1C1A26;--surface:#231F30;
@@ -36,6 +43,7 @@ const STYLE = `
   --chalk:#F9F8FF;--chalk-72:rgba(249,248,255,0.72);--chalk-42:rgba(249,248,255,0.42);
   --chalk-12:rgba(249,248,255,0.12);--chalk-06:rgba(249,248,255,0.06);--gold:#D4A853;
   --font-display:'Cinzel',serif;--font-serif:'EB Garamond',serif;--font-sans:'DM Sans',sans-serif;
+  --font-editorial:'Cormorant Garamond',serif;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--void);color:var(--chalk);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
@@ -49,15 +57,27 @@ a{color:inherit}
    contenido se comía los 24px de padding del .wrap y por debajo de 375px desbordaba la
    página en horizontal. */
 .topbar .wrap{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;min-height:64px;padding-top:10px;padding-bottom:10px;max-width:1080px}
-.mark{font-family:var(--font-display);font-size:15px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none}
+.mark{text-decoration:none;display:inline-flex}
+/* ── SISTEMA DE WORDMARK ─────────────────────────────────────────────────────
+   Portado de BluePrints/brands/ForumPHs/assets/ForumPHs_Amatista_Carbon_vFINAL.html.
+   La GEOMETRIA es eje y vive aqui; los VALORES —texto, familia, peso, color y
+   tracking de cada parte— son instancia y salen de config.wordmark del canal.
+   Las tres partes comparten el MISMO font-size: es lo que alinea las alturas de
+   caja de "Forum" y "PH" y deja la "s" a la altura de x de "orum". No hay
+   jerarquia interna, y reducir una parte rompe el sistema. */
+${WORDMARK_GEOMETRY}
 .mark b{color:var(--terra);font-weight:600}
-.topbar nav{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.topbar nav{display:flex;flex-wrap:wrap;gap:10px 22px;font-family:var(--font-editorial);font-weight:300;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
 .topbar nav a{color:var(--chalk-42);text-decoration:none;white-space:nowrap}
 .topbar nav a:hover,.topbar nav a[aria-current]{color:var(--chalk)}
-.topbar nav a.feature,.topbar nav a.feature:hover,.topbar nav a.feature[aria-current]{color:var(--terra);font-weight:600}
+/* El enlace activo se distingue por COLOR, no por peso. El sistema asigna a las versales
+   con tracking Cormorant Light 300, y el import trae 300/400/500: pedir 600 no carga un
+   corte mas grueso, hace que el navegador SINTETICE una negrita falsa — se ve casi bien
+   y no es la tipografia de la marca. */
+.topbar nav a.feature,.topbar nav a.feature:hover,.topbar nav a.feature[aria-current]{color:var(--terra)}
 .topbar nav a.feature:hover{filter:brightness(1.18)}
 .hero{padding:72px 0 40px;border-bottom:1px solid var(--chalk-06)}
-.eyebrow{font-family:var(--font-display);font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--terra);margin-bottom:18px}
+.eyebrow{font-family:var(--font-editorial);font-weight:300;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--terra);margin-bottom:18px}
 h1{font-family:var(--font-serif);font-size:clamp(30px,5.2vw,46px);font-weight:500;line-height:1.16;letter-spacing:-.01em}
 .lede{margin-top:16px;font-size:17px;line-height:1.6;color:var(--chalk-72);max-width:62ch}
 .meta{margin-top:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--chalk-42);display:flex;gap:14px;flex-wrap:wrap}
@@ -70,7 +90,7 @@ article p:last-child{margin-bottom:0}
 .list{list-style:none;padding:46px 0 0;display:grid;gap:18px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(292px,1fr))}
 .card{display:flex;flex-direction:column;text-decoration:none;background:var(--carbon);border:1px solid var(--chalk-12);border-radius:3px;padding:24px 24px 22px;transition:border-color .18s,background .18s}
 .card:hover{border-color:var(--terra);background:var(--surface)}
-.card .topic{font-size:10px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--terra);margin-bottom:13px}
+.card .topic{font-family:var(--font-editorial);font-size:12px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--terra);margin-bottom:13px}
 .card h2{font-family:var(--font-serif);font-size:22px;font-weight:500;line-height:1.26;padding-left:14px;border-left:2px solid var(--terra);margin-bottom:11px}
 .card p{font-size:14px;line-height:1.62;color:var(--chalk-72);margin-bottom:18px}
 .card .stamp{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--chalk-42)}
@@ -102,10 +122,85 @@ footer a{color:var(--chalk-72);text-decoration:none}
 @media(max-width:640px){.topbar nav{gap:9px 14px;font-size:11px}.hero{padding:48px 0 30px}}
 `;
 
-const FONTS = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap';
+// Import UNICO con las cuatro familias, tal como lo trae el <head> del vFINAL.
+// Las cuatro tienen rol exclusivo en el sistema: Cormorant → eyebrows y portadas ·
+// EB Garamond → titulares y KPIs · DM Sans → cuerpo, UI y datos · Cinzel → SOLO
+// etiquetas y badges. Un wordmark que cae a la serif del sistema se ve casi bien y no lo es.
+const FONTS = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;600&family=DM+Sans:wght@300;400;500;600;700&display=swap';
 
 // `siteName` sale de `config.site_name` si la fila del canal lo trae; si no, del host
 // de la URL canónica. En ningún caso de un literal en el repo.
+// ── Wordmark — la forma es eje, las letras son instancia ────────────────────────────
+//
+// El sistema de marca lo declara como HTML/CSS, nunca como imagen. Este modulo NO lo
+// lleva escrito: sabe que un wordmark es una secuencia de partes, cada una con un texto,
+// un ROL tipografico, un peso, un ROL de color y un tracking. Los valores salen de
+// `config.wordmark` de la fila del canal.
+//
+// Escribir «Forum» y «PHs» aqui seria poner la marca de UNA marca en el renderizador que
+// sirve el blog de TRES. Por eso las clases de parte son POSICIONALES y no `.f` / `.ph` /
+// `.s` como en el archivo de origen: `.ph` nombra «PH», y eso es instancia.
+//
+// El color va SIEMPRE por variable, nunca por literal en la regla: un rol conocido se
+// resuelve al token del tema (`accent` → `--terra`) y un valor exacto declarado por el
+// sistema de marca viaja en su propia custom property. Cablear `#C4622D` en el CSS seria
+// instancia en el codigo.
+
+const WM_FONT_ROLES = { display: 'font_display', serif: 'font_serif', sans: 'font_sans' };
+const WM_COLOR_VARS = { text: '--chalk', text_2: '--chalk-72', text_3: '--chalk-42', accent: '--terra', warn: '--gold' };
+const WM_FALLBACK = { font_display: "'EB Garamond',serif", font_serif: "'Cormorant Garamond',serif", font_sans: "'DM Sans',sans-serif" };
+const WM_SIZES = new Set(['xxs', 'xs', 'sm', 'md', 'lg', 'xl']);
+
+// Una parte invalida se descarta y se anota; no se dibuja a medias ni tumba la pagina.
+export function wordmarkParts(config) {
+  const raw = config?.wordmark?.parts;
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const theme = (config?.theme && typeof config.theme === 'object') ? config.theme : {};
+  const parts = [];
+  for (const p of raw) {
+    const text = typeof p?.text === 'string' ? p.text : '';
+    if (!text) continue;
+    const fontKey = WM_FONT_ROLES[p?.font] ?? WM_FONT_ROLES.sans;
+    const family = theme[fontKey] ? `'${String(theme[fontKey]).replace(/'/g, '')}',serif` : WM_FALLBACK[fontKey];
+    const hex = /^#[0-9A-Fa-f]{3,8}$/.test(String(p?.color ?? '')) ? String(p.color) : null;
+    parts.push({
+      text,
+      family,
+      weight: Number.isFinite(Number(p?.weight)) ? Math.round(Number(p.weight)) : 400,
+      color: hex ?? (WM_COLOR_VARS[p?.color] ? `var(${WM_COLOR_VARS[p.color]})` : `var(${WM_COLOR_VARS.text})`),
+      tracking: /^-?[0-9.]{1,6}em$/.test(String(p?.tracking ?? '')) ? String(p.tracking) : '0',
+    });
+  }
+  return parts.length ? parts : null;
+}
+
+// Reglas por parte, generadas del dato. La GEOMETRIA no se genera: vive en `.wm` del
+// bloque STYLE, que es eje y no depende de ninguna marca.
+export function wordmarkStyle(config) {
+  const parts = wordmarkParts(config);
+  if (!parts) return '';
+  const vars = parts.map((p, i) => `--wm-c${i}:${p.color}`).join(';');
+  const rules = parts.map((p, i) =>
+    `.wm>span:nth-child(${i + 1}){font-family:${p.family};font-weight:${p.weight};`
+    + `letter-spacing:${p.tracking};color:var(--wm-c${i})}`).join('');
+  return `.wm{${vars}}${rules}`;
+}
+
+// Devuelve el wordmark, o el nombre del sitio en versalitas si el canal no trae ninguno.
+// El respaldo no es un wordmark pobre: es texto declaradamente sin marca, que es lo
+// honesto cuando falta el dato.
+export function wordmarkHtml(config, { size = 'md' } = {}) {
+  const parts = wordmarkParts(config);
+  const name = siteNameOf(config);
+  if (!parts) {
+    return `<span style="font-family:var(--font-display);font-size:15px;letter-spacing:.12em;text-transform:uppercase">${escapeHtml(name)}</span>`;
+  }
+  const cls = WM_SIZES.has(size) ? size : 'md';
+  // `aria-label` con el nombre: un lector de pantalla no debe deletrear las partes.
+  return `<span class="wm wm-${cls}" role="img" aria-label="${escapeHtml(name)}">`
+    + parts.map((p) => `<span>${escapeHtml(p.text)}</span>`).join('') + '</span>';
+}
+
 export function siteNameOf(config) {
   if (config?.site_name) return String(config.site_name);
   try {
@@ -175,10 +270,17 @@ export function page({ config, title, description, canonical, ogType = 'website'
     `<meta name="twitter:title" content="${escapeHtml(title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(description)}">`,
     ogImage ? `<meta name="twitter:image" content="${escapeHtml(ogImage)}">` : '',
+    // Iconos del sitio. Las RUTAS son eje —convencion que cumple cualquier sitio— y cada
+    // despliegue sirve en ellas el icono de SU marca. La imagen es lo que seria literal,
+    // y la imagen esta en la raiz del sitio, no aqui.
+    `<link rel="icon" href="/favicon.ico" sizes="any">`,
+    `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">`,
+    `<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">`,
+    `<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`,
     `<link rel="preconnect" href="https://fonts.googleapis.com">`,
     `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
     `<link href="${FONTS}" rel="stylesheet">`,
-    `<style>${STYLE}</style>`,
+    `<style>${STYLE}${wordmarkStyle(config)}</style>`,
     // `structuredData` admite un objeto o varios. Cada tipo va en su propio bloque en
     // vez de anidarse: es lo que los validadores de schema.org leen sin ambigüedad.
     ...[].concat(structuredData ?? []).filter(Boolean)
@@ -199,7 +301,7 @@ ${head}
 <body>${trace}
 <header class="topbar">
   <div class="wrap">
-    <a class="mark" href="/">${escapeHtml(site)}</a>
+    <a class="mark" href="/" aria-label="${escapeHtml(site)}">${wordmarkHtml(config, { size: 'md' })}</a>
     <nav>
       <a href="/">Inicio</a>
       <a class="feature" href="${escapeHtml(blogPath)}"${ogType === 'website' ? ' aria-current="page"' : ''}>Sin tecnicismos</a>
