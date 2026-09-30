@@ -574,81 +574,25 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 
 /* Propiedades */
 .props-layout { display: grid; gap: 28px; align-items: center; }
-/* ── Órbita de PH: el sistema en el centro y los edificios girando a su alrededor en tres
-   órbitas inclinadas (CSS 3D). Cada nodo es un PH, de tamaño distinto; los mayores llevan
-   el destello de contorno de los CTA y todos centellean al azar. Ninguno lleva nombre ni
-   cifra: la sección habla del estándar, no del inventario. Los nodos los genera el script. */
+/* ── Red de PH: el núcleo late y cada edificio, en su órbita, intercambia luz con él.
+   Edificios en alambre (contorno y edificio delineado, sin relleno de color), unidos al núcleo por
+   una línea. Por la línea viaja la información: sale del núcleo en Amatista Tint y vuelve del
+   edificio en Terra. Los edificios giran despacio y cambian de tamaño. Ninguno lleva nombre ni
+   cifra: la sección habla del estándar, no del inventario. Nodos, líneas y pulsos los genera el
+   script; sin JS queda el núcleo. */
 .orbit-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.orbit-stage {
-  --R3: min(158px, 41vw); --R2: calc(var(--R3) * 0.76); --R1: calc(var(--R3) * 0.52); --tilt: 66deg;
-  position: relative; width: 100%; height: calc(var(--R3) * 1.3 + 90px); overflow: hidden;
-  display: flex; align-items: center; justify-content: center; perspective: 1100px;
-}
-/* El resplandor del núcleo vive FUERA del contexto 3D, en un plano normal detrás. */
-.orbit-glow { position: absolute; left: 50%; top: 50%; width: calc(var(--R3) * 1.5); height: calc(var(--R3) * 1.5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(124,74,166,0.55) 0%, rgba(92,52,114,0.22) 35%, transparent 68%); pointer-events: none; animation: glow-beat 1.6s ease-out infinite; }
-@keyframes glow-beat { 0%, 100% { opacity: 0.75; } 12% { opacity: 1; } 30% { opacity: 0.85; } }
-.orbit-system { position: relative; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(var(--tilt)); }
-.ring {
-  position: absolute; left: 0; top: 0; width: calc(var(--r) * 2); height: calc(var(--r) * 2);
-  margin: calc(var(--r) * -1) 0 0 calc(var(--r) * -1); border-radius: 50%;
-  border: 1px solid rgba(234,217,245,0.16); transform-style: preserve-3d;
-  animation: orbit-spin var(--t) linear infinite;
-}
-.ring::before { content: ''; position: absolute; inset: -1px; border-radius: 50%; border-top: 1.5px solid rgba(255,255,255,0.8); border-right: 1px solid rgba(234,217,245,0.3); }
-.ring.r1 { --r: var(--R1); --t: 38s; }
-.ring.r2 { --r: var(--R2); --t: 58s; animation-direction: reverse; }
-.ring.r3 { --r: var(--R3); --t: 84s; }
-@keyframes orbit-spin { to { transform: rotateZ(360deg); } }
-.pnode { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; transform: rotate(var(--a)) translateX(var(--r)) rotate(calc(var(--a) * -1)); }
-/* El nodo se mantiene de frente a la cámara: deshace el giro de su órbita y la inclinación. */
-.pnode-b {
-  position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%;
-  animation: billboard var(--t) linear infinite;
-  /* Sin box-shadow ni filter: en un contexto 3D, Chrome recorta el halo en un cuadrado. */
-  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.9) 0, var(--c1) 26%, var(--c2) 68%, #160d20 100%);
-}
-.ring.r2 .pnode-b { animation-direction: reverse; }
-@keyframes billboard { from { transform: rotateZ(0deg) rotateX(calc(var(--tilt) * -1)); } to { transform: rotateZ(-360deg) rotateX(calc(var(--tilt) * -1)); } }
-.pnode-b.am { --c1: #EAD9F5; --c2: #5C3472; --glow: rgba(196,160,230,0.55); }
-.pnode-b.tr { --c1: #F6C3A2; --c2: #C4622D; --glow: rgba(196,98,45,0.6); }
-.pnode-b.big::after {
-  /* edificio en miniatura dentro de los nodos grandes */
-  content: ''; position: absolute; left: 30%; right: 30%; top: 26%; bottom: 24%;
-  border: 1px solid rgba(255,255,255,0.75); border-bottom-width: 2px;
-  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.55) 3px 4px);
-  opacity: 0.8;
-}
-.pnode-b.big::before {
-  /* destello: un arco de luz que recorre el contorno (sin máscaras: en 3D dejan esquinas) */
-  content: ''; position: absolute; inset: -3px; border-radius: 50%;
-  border: 1.5px solid transparent; border-top-color: rgba(255,255,255,0.95); border-right-color: rgba(255,255,255,0.35);
-  animation: arc-spin 2.8s linear infinite;
-}
-@keyframes arc-spin { to { transform: rotate(360deg); } }
-.pnode-b.flash { animation: billboard var(--t) linear infinite, node-flash 900ms ease-out 1; }
-.ring.r2 .pnode-b.flash { animation-direction: reverse, normal; }
-@keyframes node-flash { 0% { opacity: 1; } 20% { opacity: 0.25; } 45% { opacity: 1; } 100% { opacity: 1; } }
-.orbit-core {
-  position: absolute; left: 0; top: 0; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%;
-  transform: rotateX(calc(var(--tilt) * -1)) translateZ(1px);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  background: radial-gradient(circle at 35% 28%, #8A5CB0 0%, #5C3472 45%, #2A1636 100%);
-  border: 1px solid rgba(234,217,245,0.55);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -6px 14px rgba(0,0,0,0.45);
-  font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.24em; line-height: 1;
-}
-.orbit-core b { font-weight: 400; color: #EAD9F5; }
-.orbit-core i { font-style: normal; color: #F2A77A; }
-.orbit-core::before {
-  content: ''; position: absolute; inset: -2px; border-radius: 50%; padding: 2px;
-  background: conic-gradient(from var(--glint), transparent 0deg 230deg, rgba(255,255,255,0.95) 300deg, transparent 345deg);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: glint-spin 4s linear infinite;
-}
-.orbit-core::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid rgba(196,98,45,0.7); animation: core-pulse 1.6s ease-out infinite; }
-@keyframes core-pulse { 0% { transform: scale(1); opacity: 0.9; } 70% { transform: scale(1.7); opacity: 0; } 100% { transform: scale(1.7); opacity: 0; } }
-.orbit-stage.paused .ring, .orbit-stage.paused .pnode-b, .orbit-stage.paused .orbit-core::after, .orbit-stage.paused .orbit-glow { animation-play-state: paused; }
+.net-stage { position: relative; width: 100%; max-width: 460px; }
+.net-stage::before { content: ''; position: absolute; left: 50%; top: 50%; width: 70%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(124,74,166,0.30) 0%, rgba(92,52,114,0.10) 45%, transparent 70%); pointer-events: none; }
+.net { position: relative; display: block; width: 100%; height: auto; overflow: visible; }
+.net-orbit { fill: none; stroke: #EAD9F5; stroke-opacity: 0.07; stroke-width: 1; }
+.net-link { stroke: #EAD9F5; stroke-width: 1; stroke-dasharray: 3 3; }
+.net-ring { fill: #141927; stroke: #EAD9F5; stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.net-bldg { fill: none; stroke: #EAD9F5; stroke-opacity: 0.7; stroke-width: 1; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.net-halo { fill: none; stroke-width: 1.3; vector-effect: non-scaling-stroke; }
+.net-trail { stroke-width: 1.4; stroke-linecap: round; }
+.net-beat { fill: none; stroke-width: 1; }
+.net-core-disc { stroke: #EAD9F5; stroke-opacity: 0.6; stroke-width: 1.2; }
+.net-core text { font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.26em; text-anchor: middle; }
 .orbit-caption { max-width: 24rem; text-align: center; font-family: var(--font-editorial); font-size: 1.2rem; font-style: italic; line-height: 1.4; color: var(--text-2); }
 .orbit-caption span { color: var(--terra); }
 
@@ -835,7 +779,6 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   .about-grid { grid-template-columns: 1.15fr 0.85fr; gap: 72px; align-items: start; }
   .dashboard-grid { grid-template-columns: 1fr 1.25fr; gap: 64px; }
   .props-layout { grid-template-columns: 0.9fr 1.1fr; gap: 48px; }
-  .orbit-stage { --R3: 205px; }
   .faq-grid { grid-template-columns: 1.7fr 1fr; gap: 40px; align-items: start; }
   .faq-aside { position: sticky; top: calc(var(--header-h) + 24px); }
   .contact-grid { grid-template-columns: 0.9fr 1.1fr; gap: 56px; }
@@ -1210,14 +1153,28 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <p class="lede">No hay clientes de primera y de segunda. El protocolo es el mismo en la unidad 1 y en la unidad 1,500.</p>
     </div>
     <div class="orbit-wrap">
-      <div class="orbit-stage" id="orbit-stage" aria-hidden="true">
-        <div class="orbit-glow"></div>
-        <div class="orbit-system" id="orbit-system">
-          <div class="ring r1"></div>
-          <div class="ring r2"></div>
-          <div class="ring r3"></div>
-          <div class="orbit-core"><b>FORUM</b><i>PHS</i></div>
-        </div>
+      <div class="net-stage" id="net-stage" aria-hidden="true">
+        <svg class="net" viewBox="-200 -172 400 344" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <defs>
+            <radialGradient id="nc-fill" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#8A5CB0"/><stop offset="0.5" stop-color="#5C3472"/><stop offset="1" stop-color="#2A1636"/></radialGradient>
+            <radialGradient id="nc-glow"><stop offset="0" stop-color="#9B6CC4" stop-opacity="0.55"/><stop offset="0.55" stop-color="#5C3472" stop-opacity="0.18"/><stop offset="1" stop-color="#5C3472" stop-opacity="0"/></radialGradient>
+            <radialGradient id="np-out"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/><stop offset="0.35" stop-color="#EAD9F5" stop-opacity="0.45"/><stop offset="1" stop-color="#EAD9F5" stop-opacity="0"/></radialGradient>
+            <radialGradient id="np-in"><stop offset="0" stop-color="#FFF1E6" stop-opacity="0.9"/><stop offset="0.35" stop-color="#F2A77A" stop-opacity="0.5"/><stop offset="1" stop-color="#C4622D" stop-opacity="0"/></radialGradient>
+          </defs>
+          <circle class="net-orbit" r="94"/>
+          <circle class="net-orbit" r="144"/>
+          <g class="net-links"></g>
+          <g class="net-pulses"></g>
+          <g class="net-nodes"></g>
+          <circle class="net-core-glow" r="86" fill="url(#nc-glow)"/>
+          <circle class="net-beat" r="38" stroke="#C4622D" opacity="0"/>
+          <circle class="net-beat" r="38" stroke="#EAD9F5" opacity="0"/>
+          <g class="net-core">
+            <circle class="net-core-disc" r="38" fill="url(#nc-fill)"/>
+            <text y="-3" fill="#EAD9F5">FORUM</text>
+            <text y="11" fill="#F2A77A">PHS</text>
+          </g>
+        </svg>
       </div>
       <p class="orbit-caption">Un solo sistema en el centro. <span>Cada edificio, en su órbita.</span></p>
     </div>
@@ -1633,45 +1590,140 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
     document.addEventListener('visibilitychange', function () { play(!document.hidden); });
   }
 
-  // ── Órbita de PH: nodos de tamaños distintos en tres órbitas, con centelleo al azar ──
-  var ostage = document.getElementById('orbit-stage');
-  if (ostage) {
+  // ── Red de PH: el núcleo late (lub-dub) y cada edificio, en su órbita, intercambia luz con él ──
+  var nstage = document.getElementById('net-stage');
+  if (nstage) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var mk = function (tag, attrs, parent) {
+      var e = document.createElementNS(NS, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      parent.appendChild(e);
+      return e;
+    };
+    var gLinks = nstage.querySelector('.net-links'), gPulses = nstage.querySelector('.net-pulses'), gNodes = nstage.querySelector('.net-nodes');
+    var core = nstage.querySelector('.net-core'), coreGlow = nstage.querySelector('.net-core-glow'), beats = nstage.querySelectorAll('.net-beat');
+    var CORE_R = 38, TAU = Math.PI * 2, BEAT = 1.6;
+    // Dos órbitas que giran en sentidos opuestos; `speed` en vueltas por segundo.
+    var RINGS = [{ r: 94, n: 7, speed: 1 / 64, min: 8, max: 15 }, { r: 144, n: 9, speed: -1 / 96, min: 9, max: 19 }];
+    var BLDG = 'M-5.5 7V-6H5.5V7ZM-5.5-2.5H5.5M-1.8 7V3H1.8V7';
     var nodes = [];
-    var plan = { r1: 6, r2: 9, r3: 12 };
-    Object.keys(plan).forEach(function (cls) {
-      var ring = ostage.querySelector('.ring.' + cls);
-      var n = plan[cls];
-      var offset = Math.random() * 360;
-      for (var k = 0; k < n; k++) {
-        var a = offset + k * (360 / n) + (Math.random() * 14 - 7);
-        var size = Math.round(cls === 'r1' ? 8 + Math.random() * 14 : 8 + Math.random() * 24);
-        var holder = document.createElement('span');
-        holder.className = 'pnode';
-        holder.style.setProperty('--a', a.toFixed(1) + 'deg');
-        var b = document.createElement('span');
-        b.className = 'pnode-b ' + (Math.random() < 0.26 ? 'tr' : 'am') + (size >= 22 ? ' big' : '');
-        b.style.setProperty('--s', size + 'px');
-        holder.appendChild(b);
-        ring.appendChild(holder);
-        nodes.push(b);
+    RINGS.forEach(function (ring) {
+      var off = Math.random() * TAU;
+      for (var k = 0; k < ring.n; k++) {
+        var n = {
+          ring: ring,
+          a0: off + k * TAU / ring.n + (Math.random() - 0.5) * 0.35,
+          base: ring.min + Math.random() * (ring.max - ring.min),
+          amp: 0.18 + Math.random() * 0.17,      // cuánto crece y decrece
+          per: 5 + Math.random() * 6,            // en cuántos segundos
+          ph: Math.random() * TAU,
+          glow: 0, tone: 'out', lit: 0, x: 0, y: 0, rad: 0
+        };
+        n.link = mk('line', { class: 'net-link' }, gLinks);
+        n.g = mk('g', {}, gNodes);
+        n.halo = mk('circle', { class: 'net-halo', r: 14, 'stroke-opacity': 0 }, n.g);
+        n.ringEl = mk('circle', { class: 'net-ring', r: 14 }, n.g);
+        mk('path', { class: 'net-bldg', d: BLDG }, n.g);
+        nodes.push(n);
       }
     });
-    var otimer = null;
-    function twinkle() {
-      var b = nodes[Math.floor(Math.random() * nodes.length)];
-      b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
-      otimer = setTimeout(twinkle, 260 + Math.random() * 900);
+    // Pulsos: la información que viaja por la línea. Se reutilizan; nunca hay más de ocho.
+    var pool = [];
+    for (var i = 0; i < 8; i++) {
+      var pg = mk('g', { style: 'display:none' }, gPulses);
+      pool.push({ g: pg, trail: mk('line', { class: 'net-trail' }, pg), glowEl: mk('circle', { r: 9 }, pg), head: mk('circle', { r: 2.3 }, pg), on: false });
     }
-    function oplay(on) {
-      ostage.classList.toggle('paused', !on);
-      if (reduce) return;
-      if (on && !otimer) twinkle();
-      if (!on && otimer) { clearTimeout(otimer); otimer = null; }
+    var boost = 0, nextSpawn = 0, last = 0, raf = 0;
+    function spawn(now) {
+      var p = null;
+      for (var j = 0; j < pool.length; j++) if (!pool[j].on) { p = pool[j]; break; }
+      if (!p) return;
+      p.n = nodes[Math.floor(Math.random() * nodes.length)];
+      p.out = Math.random() < 0.55;              // sale del núcleo, o vuelve del edificio
+      p.t0 = now; p.dur = 850 + Math.random() * 650; p.on = true;
+      var c = p.out ? '#EAD9F5' : '#F2A77A';
+      p.trail.setAttribute('stroke', c); p.head.setAttribute('fill', c);
+      p.glowEl.setAttribute('fill', p.out ? 'url(#np-out)' : 'url(#np-in)');
+      p.g.style.display = '';
+      if (!p.out) { p.n.glow = Math.max(p.n.glow, 0.7); p.n.tone = 'in'; }   // el edificio emite
     }
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (entries) { entries.forEach(function (en) { oplay(en.isIntersecting); }); }, { threshold: 0.05 }).observe(ostage);
-    } else { oplay(true); }
-    document.addEventListener('visibilitychange', function () { oplay(!document.hidden); });
+    function along(n, u, sc) {
+      // punto a la fracción u del tramo núcleo → edificio, de borde a borde
+      var d = Math.sqrt(n.x * n.x + n.y * n.y) || 1, ux = n.x / d, uy = n.y / d;
+      var a0 = CORE_R * sc + 3, a1 = d - n.rad - 3, t = a0 + (a1 - a0) * u;
+      return [ux * t, uy * t];
+    }
+    function frame(now) {
+      var t = now / 1000, dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
+      last = now;
+      // Latido doble cada 1,6 s, como un corazón: el primero más fuerte que el segundo.
+      var bt = t % BEAT;
+      var beat = 0.075 * Math.exp(-Math.pow((bt - 0.08) / 0.055, 2)) + 0.045 * Math.exp(-Math.pow((bt - 0.34) / 0.065, 2));
+      boost = Math.max(0, boost - dt * 2.2);
+      var sc = 1 + beat + boost * 0.035;
+      core.setAttribute('transform', 'scale(' + sc.toFixed(4) + ')');
+      coreGlow.setAttribute('opacity', Math.min(1, 0.55 + beat * 5 + boost * 0.35).toFixed(3));
+      [0.06, 0.32].forEach(function (at, k) {
+        var age = bt - at;
+        var ok = age >= 0 && age < 1.2, q = age / 1.2;
+        beats[k].setAttribute('r', ok ? (CORE_R + q * 36).toFixed(2) : CORE_R);
+        beats[k].setAttribute('opacity', ok ? ((1 - q) * (k ? 0.35 : 0.6)).toFixed(3) : 0);
+      });
+      nodes.forEach(function (n) {
+        var a = n.a0 + t * n.ring.speed * TAU;
+        var rr = n.ring.r + Math.sin(t * 0.45 + n.ph) * 3;
+        n.x = Math.cos(a) * rr; n.y = Math.sin(a) * rr;
+        n.rad = n.base * (1 + n.amp * Math.sin(TAU * t / n.per + n.ph));
+        n.g.setAttribute('transform', 'translate(' + n.x.toFixed(2) + ' ' + n.y.toFixed(2) + ') scale(' + (n.rad / 14).toFixed(4) + ')');
+        n.glow = Math.max(0, n.glow - dt * 1.4);
+        n.ringEl.setAttribute('stroke-opacity', (0.42 + 0.58 * n.glow).toFixed(3));
+        n.halo.setAttribute('stroke', n.tone === 'out' ? '#EAD9F5' : '#F2A77A');
+        n.halo.setAttribute('r', (14 + (1 - n.glow) * 9).toFixed(2));
+        n.halo.setAttribute('stroke-opacity', (n.glow * 0.85).toFixed(3));
+        var p0 = along(n, 0, sc), p1 = along(n, 1, sc);
+        n.link.setAttribute('x1', p0[0].toFixed(2)); n.link.setAttribute('y1', p0[1].toFixed(2));
+        n.link.setAttribute('x2', p1[0].toFixed(2)); n.link.setAttribute('y2', p1[1].toFixed(2));
+        n.link.setAttribute('stroke-opacity', (0.16 + 0.42 * n.lit).toFixed(3));
+        n.lit = 0;
+      });
+      pool.forEach(function (p) {
+        if (!p.on) return;
+        var u = (now - p.t0) / p.dur;
+        if (u >= 1) {
+          p.on = false; p.g.style.display = 'none';
+          if (p.out) { p.n.glow = 1; p.n.tone = 'out'; } else { boost = 1; }   // llega: se enciende quien recibe
+          return;
+        }
+        var e = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
+        var f = p.out ? e : 1 - e, fb = p.out ? Math.max(0, e - 0.12) : Math.min(1, 1 - e + 0.12);
+        var h = along(p.n, f, sc), tl = along(p.n, fb, sc);
+        p.head.setAttribute('cx', h[0].toFixed(2)); p.head.setAttribute('cy', h[1].toFixed(2));
+        p.glowEl.setAttribute('cx', h[0].toFixed(2)); p.glowEl.setAttribute('cy', h[1].toFixed(2));
+        p.trail.setAttribute('x1', tl[0].toFixed(2)); p.trail.setAttribute('y1', tl[1].toFixed(2));
+        p.trail.setAttribute('x2', h[0].toFixed(2)); p.trail.setAttribute('y2', h[1].toFixed(2));
+        p.trail.setAttribute('stroke-opacity', (0.5 * Math.sin(Math.PI * u)).toFixed(3));
+        p.n.lit = Math.max(p.n.lit, Math.sin(Math.PI * u));
+      });
+      if (!reduce && now >= nextSpawn) { spawn(now); nextSpawn = now + 200 + Math.random() * 480; }
+      raf = requestAnimationFrame(frame);
+    }
+    if (reduce) {
+      // Sin movimiento: la red queda dibujada, quieta y sin pulsos.
+      frame(0); cancelAnimationFrame(raf);
+    } else {
+      // Sólo anima cuando se ve: en pantalla y con la pestaña activa.
+      var inView = !('IntersectionObserver' in window);
+      var nplay = function () {
+        var on = inView && !document.hidden;
+        if (on && !raf) { last = 0; raf = requestAnimationFrame(frame); }
+        if (!on && raf) { cancelAnimationFrame(raf); raf = 0; }
+      };
+      if (!inView) {
+        new IntersectionObserver(function (entries) { entries.forEach(function (en) { inView = en.isIntersecting; }); nplay(); }, { threshold: 0.05 }).observe(nstage);
+      }
+      document.addEventListener('visibilitychange', nplay);
+      nplay();
+    }
   }
 
   // ── Botones: foco de luz que sigue al puntero y leve atracción magnética (sólo ratón) ──
