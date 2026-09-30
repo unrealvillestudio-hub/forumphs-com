@@ -148,6 +148,14 @@ button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--am-l); outline-offset: 3px; border-radius: 2px; }
 
 .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 var(--gutter); position: relative; z-index: 1; }
+/* Un hijo de grid o flex no se encoge por debajo de su contenido salvo que se le diga. Con
+   el texto ampliado del teléfono (Chrome → Accesibilidad), una sola línea que no parte
+   ensanchaba la columna más allá de la pantalla y arrastraba todo el hero a la derecha.
+   min-width:0 devuelve el control al ancho de la pantalla. */
+.container > *, .hero-grid > *, .about-grid > *, .dashboard-grid > *, .props-layout > *,
+.faq-grid > *, .contact-grid > *, .footer-grid > *, .form-row > *, .header-inner > *,
+.prop-nodes > *, .services-grid > *, .bi-grid > *, .testi-grid > *, .faq-list > *, .contact-list > *, .points > * { min-width: 0; }
+h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 
 /* ── WORDMARK — siempre HTML/CSS, nunca imagen (BP → wordmark). Las tres partes comparten
    el mismo font-size: así «Forum» y «PH» alinean su altura de caja. */
@@ -179,26 +187,109 @@ button { font: inherit; color: inherit; }
 .lede strong { color: var(--text); font-weight: 500; }
 
 /* ── Botones — nunca gradiente (ui-ux-layer §15). Alto mínimo 48 px (touch target). */
+/* ── Botones — relieve real: capa de luz interior arriba, sombra interior abajo, sombras
+   exteriores en capas (contacto + ambiente + resplandor del propio color), borde con un
+   destello que recorre el contorno (@property), barrido de brillo al pasar y un foco de
+   luz que sigue al puntero. Al pulsar, el botón BAJA: pierde la sombra y gana hundimiento.
+   El hover sólo existe donde hay puntero (@media (hover:hover)); en el teléfono responde
+   al toque. Decisión de Sam (2026-09-30): alto relieve, sombras, bordes brillantes y
+   destellos en los CTA — ver ui-ux-layer §19. Alto mínimo 52 px. */
+@property --glint { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .btn {
+  --px: 50%; --py: -60%;
+  position: relative; isolation: isolate; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  min-height: 52px; padding: 14px 26px;
+  min-height: 52px; max-width: 100%; padding: 14px 26px;
   font-family: var(--font-body); font-size: 15px; font-weight: 600; letter-spacing: 0.02em;
-  text-decoration: none; text-align: center; line-height: 1.2;
-  border: 1px solid transparent; border-radius: var(--radius); cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out),
-              background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-  -webkit-tap-highlight-color: transparent;
+  text-decoration: none; text-align: center; line-height: 1.25;
+  border: 1px solid transparent; border-radius: 6px; cursor: pointer;
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+  transition: transform 220ms var(--ease-spring), box-shadow 220ms var(--ease-out), filter 180ms var(--ease-out),
+              background-color 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
+.btn > * { position: relative; z-index: 2; }
 .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-.btn:active { transform: scale(0.97); }
-.btn-primary { background: var(--am); color: var(--parch); border-color: rgba(234,217,245,0.28); box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
-.btn-primary:hover { filter: brightness(1.18); transform: translateY(-1px); }
-.btn-wa { background: var(--wa); color: var(--carbon-d); }
-.btn-wa:hover { filter: brightness(1.06); transform: translateY(-1px); }
-.btn-outline { background: transparent; color: var(--text); border-color: var(--line-2); }
-.btn-outline:hover { border-color: var(--am-l); color: #fff; background: rgba(234,217,245,0.05); }
-.btn-arrow { transition: transform var(--dur-fast) var(--ease-out); }
-.btn:hover .btn-arrow { transform: translateX(3px); }
+/* Contorno con destello: un conic-gradient enmascarado al borde de 1 px que gira. */
+.btn-primary::before, .btn-wa::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: conic-gradient(from var(--glint), transparent 0deg 250deg, rgba(255,255,255,0.95) 300deg, transparent 340deg 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: glint-spin 4.5s linear infinite; opacity: .75;
+}
+@keyframes glint-spin { to { --glint: 360deg; } }
+/* Barrido de brillo: una franja oblicua cruza el botón al pasar y, en los CTA marcados con
+   .btn-shine, cada 7 s sin que nadie lo toque. */
+.btn::after {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 40%; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.32) 45%, rgba(255,255,255,0.08) 60%, transparent 100%);
+  transform: skewX(-18deg) translateX(0); opacity: 0;
+}
+.btn-shine::after { animation: shine-auto 7s ease-in-out 2.5s infinite; }
+@keyframes shine-auto { 0%, 78% { opacity: 0; transform: skewX(-18deg) translateX(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: skewX(-18deg) translateX(420%); } }
+@keyframes shine-once { 0% { opacity: 0; transform: skewX(-18deg) translateX(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: skewX(-18deg) translateX(420%); } }
+
+.btn-primary {
+  color: var(--parch);
+  background:
+    radial-gradient(140px circle at var(--px) var(--py), rgba(255,255,255,0.24), transparent 60%),
+    linear-gradient(180deg, #74499C 0%, #5C3472 52%, #4A2A5D 100%);
+  border-color: rgba(234,217,245,0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -2px 0 rgba(0,0,0,0.30),
+    0 1px 1px rgba(0,0,0,0.45), 0 6px 14px -4px rgba(0,0,0,0.6),
+    0 16px 34px -12px rgba(124,74,166,0.85);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+}
+.btn-wa {
+  color: var(--carbon-d);
+  background:
+    radial-gradient(140px circle at var(--px) var(--py), rgba(255,255,255,0.45), transparent 60%),
+    linear-gradient(180deg, #4BEA8C 0%, #25D366 55%, #1BB457 100%);
+  border-color: rgba(255,255,255,0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55), inset 0 -2px 0 rgba(0,0,0,0.18),
+    0 1px 1px rgba(0,0,0,0.45), 0 6px 14px -4px rgba(0,0,0,0.55),
+    0 16px 34px -12px rgba(37,211,102,0.7);
+}
+.btn-wa::before { background: conic-gradient(from var(--glint), transparent 0deg 250deg, rgba(255,255,255,1) 300deg, transparent 340deg 360deg); }
+.btn-outline {
+  color: var(--text);
+  background:
+    radial-gradient(140px circle at var(--px) var(--py), rgba(234,217,245,0.14), transparent 60%),
+    linear-gradient(180deg, rgba(240,237,232,0.07), rgba(240,237,232,0.02));
+  border-color: rgba(240,237,232,0.2);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 22px -12px rgba(0,0,0,0.7);
+}
+.btn:active {
+  transform: translate(var(--mx, 0px), calc(var(--my, 0px) + 1px)) scale(0.985);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.38), 0 1px 2px rgba(0,0,0,0.4);
+  transition-duration: 60ms;
+}
+.btn-arrow { display: inline-block; transition: transform 220ms var(--ease-spring); }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { transform: translate(var(--mx, 0px), calc(var(--my, 0px) - 2px)); }
+  .btn:hover::after { animation: shine-once 900ms var(--ease-out) 1; }
+  .btn-primary:hover {
+    border-color: rgba(234,217,245,0.6);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.36), inset 0 -2px 0 rgba(0,0,0,0.30),
+      0 2px 2px rgba(0,0,0,0.4), 0 12px 22px -6px rgba(0,0,0,0.6),
+      0 22px 46px -12px rgba(150,96,196,0.95), 0 0 0 4px rgba(92,52,114,0.18);
+  }
+  .btn-wa:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(0,0,0,0.18),
+      0 2px 2px rgba(0,0,0,0.4), 0 12px 22px -6px rgba(0,0,0,0.55),
+      0 22px 46px -12px rgba(37,211,102,0.85), 0 0 0 4px rgba(37,211,102,0.14);
+  }
+  .btn-outline:hover { border-color: rgba(234,217,245,0.55); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 4px rgba(234,217,245,0.06), 0 14px 30px -14px rgba(0,0,0,0.8); }
+  .btn:hover .btn-arrow { transform: translateX(4px); }
+  .btn-primary:hover::before, .btn-wa:hover::before { opacity: 1; animation-duration: 2.2s; }
+}
+.btn:focus-visible { outline: 2px solid var(--am-l); outline-offset: 3px; }
 .btn-block { width: 100%; }
 
 /* ══ CABECERA ═════════════════════════════════════════════════════════════════════ */
@@ -218,23 +309,27 @@ button { font: inherit; color: inherit; }
   animation: shimmer-pan 5s ease-in-out infinite;
 }
 @keyframes shimmer-pan { 0%,100% { opacity: 0.25; } 50% { opacity: 0.8; } }
-.header-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: var(--header-h); }
+.header-inner { display: flex; align-items: center; justify-content: space-between; gap: 10px; height: var(--header-h); }
 .brand { display: flex; flex-direction: column; justify-content: center; gap: 3px; min-height: 44px; text-decoration: none; min-width: 0; }
 .brand-sub { display: none; font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
 .nav-desktop { display: none; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 46px; height: 46px; border-radius: var(--radius);
-  border: 1px solid var(--line-2); background: transparent; color: var(--text);
-  cursor: pointer; text-decoration: none;
-  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-  -webkit-tap-highlight-color: transparent;
+  position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 46px; height: 46px; border-radius: 8px;
+  border: 1px solid rgba(240,237,232,0.18); color: var(--text); cursor: pointer; text-decoration: none;
+  background: linear-gradient(180deg, rgba(240,237,232,0.08), rgba(240,237,232,0.02));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 16px -8px rgba(0,0,0,0.8);
+  transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out), transform 180ms var(--ease-spring), color 180ms;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-.icon-btn:hover { border-color: var(--am-l); background: rgba(234,217,245,0.06); }
+.icon-btn:active { transform: scale(0.94); box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
 .icon-btn svg { width: 22px; height: 22px; }
-.icon-btn.wa { color: var(--wa); border-color: rgba(37,211,102,0.45); }
-.icon-btn.wa:hover { background: rgba(37,211,102,0.1); border-color: var(--wa); }
+.icon-btn.wa { color: var(--wa); border-color: rgba(37,211,102,0.5); background: linear-gradient(180deg, rgba(37,211,102,0.16), rgba(37,211,102,0.05)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 18px -6px rgba(37,211,102,0.55); }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover { border-color: rgba(234,217,245,0.55); box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 0 0 4px rgba(234,217,245,0.06); }
+  .icon-btn.wa:hover { border-color: var(--wa); box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 0 22px -4px rgba(37,211,102,0.7); }
+}
 .burger { position: relative; width: 20px; height: 14px; }
 .burger span { position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px; background: currentColor; transition: transform var(--dur-normal) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
 .burger span:nth-child(1) { top: 0; }
@@ -266,6 +361,8 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; color: var(--text);
   text-decoration: none; transition: color var(--dur-fast) var(--ease-out), padding var(--dur-fast) var(--ease-out);
 }
+.dl-n { flex-shrink: 0; width: 2.2em; font-family: var(--font-utility); font-size: 11px; letter-spacing: 0.12em; color: var(--terra); }
+.dl-t { flex: 1; min-width: 0; }
 .drawer-links a::after { content: '→'; font-family: var(--font-body); font-size: 1rem; color: var(--text-3); transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
 .drawer-links a:hover, .drawer-links a:focus-visible { color: var(--am-l); }
 .drawer-links a:hover::after { transform: translateX(4px); color: var(--terra); }
@@ -296,9 +393,9 @@ button { font: inherit; color: inherit; }
 .hero-copy { position: relative; z-index: 2; }
 .hero-kicker {
   display: inline-flex; align-items: center; gap: 10px;
-  padding: 7px 14px; margin-bottom: 26px; white-space: nowrap; max-width: 100%;
+  padding: 8px 16px; margin-bottom: 26px; max-width: 100%; line-height: 1.5;
   font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--am-l); background: var(--am-tint); border: 1px solid rgba(234,217,245,0.18); border-radius: 999px;
+  color: var(--am-l); background: var(--am-tint); border: 1px solid rgba(234,217,245,0.18); border-radius: 18px;
 }
 .dot-breathe { width: 6px; height: 6px; border-radius: 50%; background: var(--terra); animation: dot-breathe 2.5s ease-in-out infinite; }
 @keyframes dot-breathe { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.65); } }
@@ -308,35 +405,75 @@ button { font: inherit; color: inherit; }
   margin-bottom: 24px; text-wrap: balance;
 }
 .hero-title .part-1 { display: block; color: var(--text); }
+/* Revelado del titular: cada parte sube desde detrás de una máscara al cargar. */
+.hero-title .part-1, .hero-title .part-2 { overflow: hidden; padding-bottom: 0.06em; }
+.hero-title .rise { display: block; animation: rise-in 900ms var(--ease-out) both; }
+.hero-title .rise.d1 { animation-delay: 160ms; }
+@keyframes rise-in { from { transform: translateY(105%); opacity: 0; } to { transform: none; opacity: 1; } }
 /* BP → slogan_parts: la segunda parte es la enfatizada, en Terra. Invariable. */
 .hero-title .part-2 { display: block; color: var(--terra); font-style: italic; font-weight: 400; }
 .hero-body { font-size: 1.0625rem; font-weight: 300; color: var(--text-2); line-height: 1.72; max-width: 34rem; margin-bottom: 32px; }
 .hero-actions { display: grid; gap: 12px; }
 .hero-note { margin-top: 14px; font-size: 13px; color: var(--text-3); }
 .hero-trust {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  /* flex con envoltura: si el texto crece, una cifra baja de línea en vez de salirse. */
+  display: flex; flex-wrap: wrap; gap: 20px 24px;
   margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--line);
 }
+.hero-trust > div { flex: 1 1 6.5rem; min-width: 0; }
 .trust-num { display: block; font-family: var(--font-display); font-size: clamp(1.8rem, 8vw, 2.5rem); font-weight: 500; line-height: 1; color: var(--text); }
 .trust-num small { font-size: 0.6em; color: var(--terra); margin-right: 1px; }
-.trust-label { display: block; margin-top: 8px; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); line-height: 1.35; }
+.trust-label { display: block; margin-top: 8px; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); line-height: 1.4; }
 
-.hero-visual { position: relative; display: flex; justify-content: center; }
-.building-wrap { position: relative; width: min(78vw, 360px); aspect-ratio: 380 / 480; }
-.building-wrap svg { width: 100%; height: 100%; filter: drop-shadow(0 30px 60px rgba(92,52,114,0.35)); animation: float-soft 7s ease-in-out infinite; }
-@keyframes float-soft { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-.data-badge {
-  position: absolute; z-index: 2; white-space: nowrap;
-  font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--am-l); background: rgba(20,25,39,0.92); border: 1px solid rgba(234,217,245,0.2);
-  padding: 7px 11px; border-radius: 2px;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  animation: float-badge 4s ease-in-out infinite;
+/* ── Torre viva: un PH en 3D de alambre (CSS 3D) que gira despacio. Cada ventana es un
+   hogar; sus luces se encienden y se apagan al azar, y el contorno late como un corazón
+   (doble pulso). Las ventanas las genera el script; sin JS queda la estructura quieta.
+   Con movimiento reducido no gira ni parpadea. */
+.hero-visual { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.tower-stage {
+  --tw: 120px; --th: 270px;
+  position: relative; width: 100%; height: calc(var(--th) + 120px);
+  display: flex; align-items: center; justify-content: center;
+  perspective: 1000px; perspective-origin: 50% 30%;
 }
-.data-badge:nth-of-type(2) { animation-delay: .6s; }
-.data-badge:nth-of-type(3) { animation-delay: 1.2s; border-left: 2px solid var(--terra); }
-.data-badge:nth-of-type(4) { animation-delay: 1.8s; }
-@keyframes float-badge { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.tower { position: relative; width: var(--tw); height: var(--th); transform-style: preserve-3d; transform: rotateX(-16deg) rotateY(-32deg); animation: tower-turn 48s linear infinite; }
+@keyframes tower-turn { from { transform: rotateX(-16deg) rotateY(-32deg); } to { transform: rotateX(-16deg) rotateY(328deg); } }
+.tower .face {
+  position: absolute; inset: 0; box-sizing: border-box;
+  display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(15, 1fr); gap: 4px 5px; padding: 8px 7px 10px;
+  border: 1px solid rgba(234,217,245,0.5);
+  background:
+    linear-gradient(180deg, rgba(92,52,114,0.30), rgba(20,16,32,0.62)),
+    repeating-linear-gradient(0deg, transparent 0, transparent calc(var(--th) / 15 - 1px), rgba(234,217,245,0.08) calc(var(--th) / 15 - 1px), rgba(234,217,245,0.08) calc(var(--th) / 15));
+  backface-visibility: visible;
+}
+.tower .face::after { content: ''; position: absolute; inset: -1px; border: 1px solid rgba(234,217,245,0.95); box-shadow: 0 0 18px rgba(196,160,230,0.55), inset 0 0 18px rgba(196,160,230,0.25); opacity: 0; animation: heartbeat 1.6s ease-out infinite; pointer-events: none; }
+.tower .f-front { transform: translateZ(calc(var(--tw) / 2)); }
+.tower .f-back  { transform: rotateY(180deg) translateZ(calc(var(--tw) / 2)); }
+.tower .f-right { transform: rotateY(90deg) translateZ(calc(var(--tw) / 2)); }
+.tower .f-left  { transform: rotateY(-90deg) translateZ(calc(var(--tw) / 2)); }
+.tower .roof {
+  position: absolute; left: 0; top: 0; width: var(--tw); height: var(--tw);
+  transform: translateY(calc(var(--tw) / -2)) rotateX(90deg);
+  border: 1px solid rgba(234,217,245,0.6);
+  background: repeating-linear-gradient(90deg, transparent 0 18px, rgba(234,217,245,0.12) 18px 19px), rgba(92,52,114,0.28);
+}
+.tower .floor {
+  position: absolute; left: 50%; top: 100%; width: calc(var(--tw) * 2.6); height: calc(var(--tw) * 2.6);
+  transform: translate(-50%, -50%) rotateX(90deg);
+  background: radial-gradient(circle, rgba(92,52,114,0.55) 0%, rgba(92,52,114,0.15) 40%, transparent 68%);
+  animation: floor-beat 1.6s ease-out infinite;
+}
+.tower .antenna { position: absolute; left: 50%; top: -38px; width: 1px; height: 38px; background: rgba(234,217,245,0.7); transform: translateX(-50%) translateZ(0); }
+.tower .antenna::after { content: ''; position: absolute; top: -4px; left: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--terra); box-shadow: 0 0 10px 2px rgba(196,98,45,0.8); animation: dot-breathe 1.6s ease-in-out infinite; }
+.win { border: 1px solid rgba(234,217,245,0.16); border-radius: 1px; background: rgba(14,16,24,0.35); transition: background-color 900ms ease, box-shadow 900ms ease, border-color 900ms ease; }
+.win.on { background: rgba(234,217,245,0.88); border-color: rgba(255,255,255,0.9); box-shadow: 0 0 8px rgba(234,217,245,0.75); }
+.win.on.warm { background: rgba(242,167,122,0.95); border-color: rgba(255,214,190,0.95); box-shadow: 0 0 9px rgba(196,98,45,0.85); }
+@keyframes heartbeat { 0% { opacity: 0; } 8% { opacity: .9; } 20% { opacity: .15; } 30% { opacity: .65; } 55% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes floor-beat { 0%, 100% { opacity: .65; transform: translate(-50%, -50%) rotateX(90deg) scale(1); } 10% { opacity: 1; transform: translate(-50%, -50%) rotateX(90deg) scale(1.06); } 30% { opacity: .85; transform: translate(-50%, -50%) rotateX(90deg) scale(1.03); } }
+.tower-stage.paused .tower, .tower-stage.paused .face::after, .tower-stage.paused .floor { animation-play-state: paused; }
+.tower-caption { max-width: 22rem; text-align: center; font-family: var(--font-editorial); font-size: 1.2rem; font-style: italic; line-height: 1.4; color: var(--text-2); }
+.tower-caption span { color: var(--terra); }
 
 /* Franja de credenciales: desplazable en horizontal en el teléfono */
 .creds { position: relative; z-index: 1; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(20,25,39,0.55); }
@@ -396,12 +533,12 @@ button { font: inherit; color: inherit; }
 .point-title { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
 .point-body { font-size: 14px; font-weight: 300; color: var(--text-3); line-height: 1.6; }
 .dashboard-panel { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
-.dp-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.dp-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; padding: 14px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
 .dp-title { font-family: var(--font-utility); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-2); }
 .dp-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--am-l); background: var(--am-tint); border: 1px solid rgba(234,217,245,0.2); padding: 4px 10px; border-radius: 999px; }
 .dp-body { padding: 8px 18px 20px; }
 .dp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.dp-row-label { font-size: 14px; color: var(--text-2); }
+.dp-row-label { min-width: 0; font-size: 14px; color: var(--text-2); }
 .dp-row-val { font-family: var(--font-display); font-size: 1.25rem; font-weight: 500; color: var(--text); white-space: nowrap; }
 .dp-row-val.ok { color: var(--am-l); }
 .dp-row-val.watch { color: var(--terra); }
@@ -413,7 +550,7 @@ button { font: inherit; color: inherit; }
 .dp-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--am), var(--am-l)); transform: scaleX(0); transform-origin: left; transition: transform 1.4s var(--ease-out); }
 .dp-bar-fill.t { background: linear-gradient(90deg, #7a3a1a, var(--terra)); }
 .dashboard-panel.in .dp-bar-fill { transform: scaleX(1); }
-.dp-incidents { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+.dp-incidents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
 .dp-inc-card { background: var(--carbon-d); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 12px; text-align: center; }
 .dp-inc-num { display: block; font-family: var(--font-display); font-size: 2.2rem; line-height: 1; margin-bottom: 6px; color: var(--am-l); }
 .dp-inc-num.t { color: var(--terra); }
@@ -602,7 +739,6 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 /* ══ TABLET ≥ 640 px ══════════════════════════════════════════════════════════════ */
 @media (min-width: 640px) {
   :root { --gutter: 32px; }
-  .brand-sub { display: block; }
   .hero-actions { grid-template-columns: auto auto; justify-content: start; }
   .services-grid, .bi-grid, .testi-grid { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr 1fr; }
@@ -620,7 +756,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   .section-head { margin-bottom: 56px; }
   .hero { padding-bottom: 88px; min-height: min(100vh, 920px); display: flex; align-items: center; }
   .hero-grid { grid-template-columns: 1.1fr 0.9fr; gap: 48px; }
-  .building-wrap { width: min(34vw, 380px); }
+  .tower-stage { --tw: 150px; --th: 350px; height: calc(var(--th) + 170px); }
   .about-grid { grid-template-columns: 1.15fr 0.85fr; gap: 72px; align-items: start; }
   .dashboard-grid { grid-template-columns: 1fr 1.25fr; gap: 64px; }
   .props-layout { grid-template-columns: 1fr 1fr; gap: 64px; }
@@ -659,12 +795,15 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 }
 @media (min-width: 1360px) { .brand-sub { display: block; } }
 @media (max-width: 1099.98px) { .header-actions .btn { display: none; } }
-@media (max-width: 380px) { .wm-nav > span { font-size: 20px; } .hero-trust { gap: 4px; } .trust-label { font-size: 10px; letter-spacing: 0.08em; } }
+@media (max-width: 380px) { .wm-nav > span { font-size: 20px; } .trust-label { letter-spacing: 0.06em; } }
+@media (max-width: 330px) { :root { --gutter: 16px; } .wm-nav > span { font-size: 18px; } .icon-btn { width: 42px; height: 42px; } .header-actions { gap: 6px; } }
 
 /* ── Movimiento reducido (a11y · A11Y-7) ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .js .reveal { opacity: 1; transform: none; }
+  .tower { animation: none; }
+  .btn-primary::before, .btn-wa::before, .btn::after { animation: none; opacity: 0; }
 }
 </style>
 </head>
@@ -695,7 +834,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <a class="icon-btn wa" href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg>
       </a>
-      <a class="btn btn-primary" href="#contacto">Diagnóstico gratuito</a>
+      <a class="btn btn-primary" href="#contacto"><span>Diagnóstico gratuito</span></a>
       <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-expanded="false" aria-controls="drawer" aria-label="Abrir menú">
         <span class="burger" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
@@ -707,12 +846,12 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Menú" aria-hidden="true">
   <nav aria-label="Menú móvil">
     <ul class="drawer-links">
-      <li><a href="#about">Nosotros</a></li>
-      <li><a href="#servicios">Servicios</a></li>
-      <li><a href="#dashboard">Cómo funciona</a></li>
-      <li><a href="#inteligencia">Inteligencia financiera</a></li>
-      <li><a href="#testimonios">Clientes</a></li>
-      <li><a href="#faq">Preguntas frecuentes</a></li>
+      <li><a href="#about"><span class="dl-n" aria-hidden="true">01</span><span class="dl-t">Nosotros</span></a></li>
+      <li><a href="#servicios"><span class="dl-n" aria-hidden="true">02</span><span class="dl-t">Servicios</span></a></li>
+      <li><a href="#dashboard"><span class="dl-n" aria-hidden="true">03</span><span class="dl-t">Cómo funciona</span></a></li>
+      <li><a href="#inteligencia"><span class="dl-n" aria-hidden="true">04</span><span class="dl-t">Inteligencia financiera</span></a></li>
+      <li><a href="#testimonios"><span class="dl-n" aria-hidden="true">05</span><span class="dl-t">Clientes</span></a></li>
+      <li><a href="#faq"><span class="dl-n" aria-hidden="true">06</span><span class="dl-t">Preguntas frecuentes</span></a></li>
     </ul>
     <a class="drawer-blog" href="/blog">
       <span><span class="drawer-blog-label">Blog</span><span class="drawer-blog-title">Sin tecnicismos</span></span>
@@ -722,9 +861,9 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   <div class="drawer-foot">
     <a class="btn btn-wa btn-block" href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg>
-      Escribir por WhatsApp
+      <span>Escribir por WhatsApp</span>
     </a>
-    <a class="btn btn-primary btn-block" href="#contacto">Solicitar diagnóstico gratuito <span class="btn-arrow" aria-hidden="true">→</span></a>
+    <a class="btn btn-primary btn-block" href="#contacto"><span>Solicitar diagnóstico gratuito</span> <span class="btn-arrow" aria-hidden="true">→</span></a>
     <p class="drawer-contact"><a href="mailto:contacto@forumphs.com">contacto@forumphs.com</a> · +507 6722-7355</p>
   </div>
 </div>
@@ -737,8 +876,8 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
     <div class="hero-copy">
       <div class="hero-kicker"><span class="dot-breathe" aria-hidden="true"></span>Administración profesional · Desde 2015</div>
       <h1 class="hero-title">
-        <span class="part-1">Construiste tu patrimonio.</span>
-        <span class="part-2">Nosotros le construimos un sistema.</span>
+        <span class="part-1"><span class="rise">Construiste tu patrimonio.</span></span>
+        <span class="part-2"><span class="rise d1">Nosotros le construimos un sistema.</span></span>
       </h1>
       <p class="hero-body">
         ForumPHs administra ~1,500 unidades en Panamá con criterio jurídico especializado,
@@ -746,61 +885,31 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
         Bajo el Régimen de Propiedad Horizontal.
       </p>
       <div class="hero-actions">
-        <a href="#contacto" class="btn btn-primary">Solicitar diagnóstico gratuito <span class="btn-arrow" aria-hidden="true">→</span></a>
-        <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" class="btn btn-wa">
+        <a href="#contacto" class="btn btn-primary btn-shine magnetic"><span>Solicitar diagnóstico gratuito</span> <span class="btn-arrow" aria-hidden="true">→</span></a>
+        <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" class="btn btn-wa magnetic">
           <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg>
-          Escríbanos por WhatsApp
+          <span>Escríbanos por WhatsApp</span>
         </a>
       </div>
       <p class="hero-note">Sin compromiso · Respuesta en menos de 24 horas hábiles</p>
 
       <div class="hero-trust">
-        <div><span class="trust-num"><small>+</small>1,500</span><span class="trust-label">Unidades gestionadas</span></div>
-        <div><span class="trust-num">8</span><span class="trust-label">PH activos</span></div>
+        <div><span class="trust-num"><small>+</small>1,500</span><span class="trust-label">Familias confían su patrimonio</span></div>
         <div><span class="trust-num"><small>+</small>10</span><span class="trust-label">Años de oficio</span></div>
+        <div><span class="trust-num">1</span><span class="trust-label">Mismo estándar para todos</span></div>
       </div>
     </div>
 
-    <div class="hero-visual" aria-hidden="true">
-      <div class="building-wrap">
-        <div class="data-badge" style="top:10%;right:-4%">SLA auditables</div>
-        <div class="data-badge" style="top:38%;left:-6%">Régimen de PH</div>
-        <div class="data-badge" style="bottom:28%;right:-6%">Reporte mensual</div>
-        <div class="data-badge" style="bottom:9%;left:-2%">Gestión jurídica</div>
-        <svg viewBox="0 0 380 480" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="bldTop" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7B4A96"/><stop offset="100%" stop-color="#5C3472"/></linearGradient>
-            <linearGradient id="bldLeft" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3A1F4A"/><stop offset="100%" stop-color="#2A1636"/></linearGradient>
-            <linearGradient id="bldRight" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4A2A5E"/><stop offset="100%" stop-color="#3A1F4A"/></linearGradient>
-          </defs>
-          <ellipse cx="190" cy="448" rx="120" ry="18" fill="rgba(92,52,114,0.35)"/>
-          <polygon points="60,180 190,108 190,440 60,380" fill="url(#bldLeft)" stroke="rgba(234,217,245,0.22)" stroke-width="0.6"/>
-          <polygon points="190,108 320,180 320,380 190,440" fill="url(#bldRight)" stroke="rgba(234,217,245,0.18)" stroke-width="0.6"/>
-          <polygon points="60,180 190,108 320,180 190,252" fill="url(#bldTop)" stroke="rgba(234,217,245,0.45)" stroke-width="0.8"/>
-          <g fill="rgba(234,217,245,0.10)" stroke="rgba(234,217,245,0.18)" stroke-width="0.5">
-            <rect x="72" y="200" width="22" height="14" rx="1"/><rect x="72" y="228" width="22" height="14" rx="1"/><rect x="72" y="256" width="22" height="14" rx="1"/><rect x="72" y="284" width="22" height="14" rx="1"/><rect x="72" y="312" width="22" height="14" rx="1"/><rect x="72" y="340" width="22" height="14" rx="1"/>
-            <rect x="104" y="188" width="22" height="14" rx="1"/><rect x="104" y="216" width="22" height="14" rx="1"/><rect x="104" y="244" width="22" height="14" rx="1"/><rect x="104" y="272" width="22" height="14" rx="1"/><rect x="104" y="300" width="22" height="14" rx="1"/><rect x="104" y="328" width="22" height="14" rx="1"/><rect x="104" y="356" width="22" height="14" rx="1"/>
-            <rect x="136" y="178" width="22" height="14" rx="1"/><rect x="136" y="206" width="22" height="14" rx="1"/><rect x="136" y="234" width="22" height="14" rx="1"/><rect x="136" y="262" width="22" height="14" rx="1"/><rect x="136" y="290" width="22" height="14" rx="1"/><rect x="136" y="318" width="22" height="14" rx="1"/><rect x="136" y="346" width="22" height="14" rx="1"/><rect x="136" y="374" width="22" height="14" rx="1"/>
-          </g>
-          <g fill="rgba(234,217,245,0.07)" stroke="rgba(234,217,245,0.14)" stroke-width="0.5">
-            <rect x="204" y="188" width="22" height="14" rx="1"/><rect x="204" y="216" width="22" height="14" rx="1"/><rect x="204" y="244" width="22" height="14" rx="1"/><rect x="204" y="272" width="22" height="14" rx="1"/><rect x="204" y="300" width="22" height="14" rx="1"/><rect x="204" y="328" width="22" height="14" rx="1"/><rect x="204" y="356" width="22" height="14" rx="1"/>
-            <rect x="240" y="200" width="22" height="14" rx="1"/><rect x="240" y="228" width="22" height="14" rx="1"/><rect x="240" y="256" width="22" height="14" rx="1"/><rect x="240" y="284" width="22" height="14" rx="1"/><rect x="240" y="312" width="22" height="14" rx="1"/><rect x="240" y="340" width="22" height="14" rx="1"/>
-            <rect x="276" y="214" width="22" height="14" rx="1"/><rect x="276" y="242" width="22" height="14" rx="1"/><rect x="276" y="270" width="22" height="14" rx="1"/><rect x="276" y="298" width="22" height="14" rx="1"/><rect x="276" y="326" width="22" height="14" rx="1"/>
-          </g>
-          <g fill="rgba(234,217,245,0.6)">
-            <rect x="72" y="228" width="22" height="14" rx="1"/><rect x="136" y="262" width="22" height="14" rx="1"/><rect x="204" y="244" width="22" height="14" rx="1"/><rect x="240" y="312" width="22" height="14" rx="1"/>
-          </g>
-          <g fill="rgba(196,98,45,0.8)">
-            <rect x="104" y="300" width="22" height="14" rx="1"/><rect x="276" y="270" width="22" height="14" rx="1"/>
-          </g>
-          <polygon points="190,80 230,108 190,108 150,108" fill="rgba(92,52,114,0.8)" stroke="rgba(234,217,245,0.45)" stroke-width="0.8"/>
-          <line x1="190" y1="40" x2="190" y2="80" stroke="rgba(234,217,245,0.6)" stroke-width="1"/>
-          <circle cx="190" cy="36" r="5" fill="#C4622D"><animate attributeName="opacity" values="1;0.35;1" dur="2.5s" repeatCount="indefinite"/></circle>
-          <line x1="190" y1="108" x2="190" y2="440" stroke="rgba(234,217,245,0.22)" stroke-width="1"/>
-          <line x1="60" y1="240" x2="20" y2="240" stroke="rgba(234,217,245,0.25)" stroke-width="0.8" stroke-dasharray="3,3"/>
-          <line x1="320" y1="320" x2="348" y2="320" stroke="rgba(196,98,45,0.5)" stroke-width="0.8" stroke-dasharray="3,3"/>
-        </svg>
+    <div class="hero-visual">
+      <div class="tower-stage" id="tower-stage" aria-hidden="true">
+        <div class="tower" id="tower">
+          <div class="floor"></div>
+          <div class="face f-front"></div><div class="face f-right"></div><div class="face f-back"></div><div class="face f-left"></div>
+          <div class="roof"></div>
+          <div class="antenna"></div>
+        </div>
       </div>
+      <p class="tower-caption">Cada luz, un hogar. <span>Cada hogar, un patrimonio.</span></p>
     </div>
   </div>
 </section>
@@ -837,8 +946,8 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
         un patrimonio colectivo que merece un sistema.
       </p>
       <p class="about-detail reveal">
-        Hoy gestionamos <strong>~1,500 unidades en 8 PH activos.</strong><br>
-        El mismo estándar para cada uno. Sin excepción.
+        Hoy cuidamos <strong>el patrimonio de más de 1,500 familias.</strong><br>
+        El mismo estándar para cada una. Sin excepción.
       </p>
     </div>
 
@@ -1021,7 +1130,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   <div class="container props-layout">
     <div>
       <div class="eyebrow">Propiedades activas</div>
-      <h2 class="h2">8 PH activos. Un solo <em>estándar.</em></h2>
+      <h2 class="h2">El patrimonio de +1,500 familias. Un solo <em>estándar.</em></h2>
       <p class="lede">No hay clientes de primera y de segunda. El protocolo es el mismo en la unidad 1 y en la unidad 1,500.</p>
       <svg class="props-network" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <g stroke="rgba(234,217,245,0.22)" stroke-width="1" stroke-dasharray="4,3">
@@ -1144,9 +1253,9 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
         <p>Sin formularios genéricos, sin respuestas automáticas. La consulta la atiende una abogada especialista en Régimen de Propiedad Horizontal.</p>
         <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" class="btn btn-wa btn-block">
           <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg>
-          Escríbanos por WhatsApp
+          <span>Escríbanos por WhatsApp</span>
         </a>
-        <a href="#contacto" class="btn btn-outline btn-block">Solicitar diagnóstico gratuito</a>
+        <a href="#contacto" class="btn btn-outline btn-block"><span>Solicitar diagnóstico gratuito</span></a>
       </aside>
     </div>
   </div>
@@ -1164,10 +1273,10 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       La consulta la atiende una abogada especialista en Régimen de Propiedad Horizontal.
     </p>
     <div class="cta-actions">
-      <a href="#contacto" class="btn btn-primary">Solicitar diagnóstico <span class="btn-arrow" aria-hidden="true">→</span></a>
+      <a href="#contacto" class="btn btn-primary btn-shine magnetic"><span>Solicitar diagnóstico</span> <span class="btn-arrow" aria-hidden="true">→</span></a>
       <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" class="btn btn-wa">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg>
-        O escríbanos por WhatsApp
+        <span>O escríbanos por WhatsApp</span>
       </a>
     </div>
     <div class="cta-foot">forumphs.com · Panamá · Bajo el Régimen de Propiedad Horizontal · Desde 2015</div>
@@ -1251,10 +1360,10 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
           <label class="form-label" for="c-message">¿Cuál es su situación actual?</label>
           <textarea class="form-textarea" id="c-message" name="mensaje" rows="4" placeholder="Cuéntenos qué está pasando en su propiedad. Cuantos más detalles, mejor preparados llegamos."></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Solicitar evaluación <span class="btn-arrow" aria-hidden="true">→</span></button>
+        <button type="submit" class="btn btn-primary btn-block magnetic"><span>Solicitar evaluación</span> <span class="btn-arrow" aria-hidden="true">→</span></button>
         <p class="form-note">Sus datos son confidenciales. No hay compromiso de contratación en esta primera conversación.</p>
         <div class="form-alt">o si lo prefiere</div>
-        <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" class="btn btn-outline btn-block">Escríbanos por WhatsApp</a>
+        <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" class="btn btn-outline btn-block"><span>Escríbanos por WhatsApp</span></a>
       </form>
     </div>
   </div>
@@ -1303,9 +1412,9 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 <div class="action-bar" id="action-bar" aria-hidden="true">
   <a class="btn btn-wa" href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener" tabindex="-1">
     <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg>
-    WhatsApp
+    <span>WhatsApp</span>
   </a>
-  <a class="btn btn-primary" href="#contacto" tabindex="-1">Diagnóstico gratis</a>
+  <a class="btn btn-primary" href="#contacto" tabindex="-1"><span>Diagnóstico gratis</span></a>
 </div>
 
 <!-- Botón flotante de WhatsApp (escritorio) -->
@@ -1431,6 +1540,66 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
     }
     history.replaceState({}, '', window.location.pathname + '#contacto');
     if (contact) contact.scrollIntoView();
+  }
+
+  // ── Torre viva: genera las ventanas y enciende/apaga luces al azar ──
+  var stage = document.getElementById('tower-stage');
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (stage) {
+    var wins = [];
+    stage.querySelectorAll('.face').forEach(function (face) {
+      for (var k = 0; k < 75; k++) {
+        var w = document.createElement('i');
+        w.className = 'win';
+        if (Math.random() < 0.26) w.classList.add('on');
+        if (Math.random() < 0.14) w.classList.add('warm');
+        face.appendChild(w);
+        wins.push(w);
+      }
+    });
+    var timer = null;
+    // Ritmo irregular a propósito: un edificio habitado no parpadea a compás.
+    function flicker() {
+      var n = 1 + Math.floor(Math.random() * 3);
+      for (var k = 0; k < n; k++) {
+        var w = wins[Math.floor(Math.random() * wins.length)];
+        w.classList.toggle('on');
+      }
+      timer = setTimeout(flicker, 140 + Math.random() * 520);
+    }
+    function play(on) {
+      stage.classList.toggle('paused', !on);
+      if (reduce) return;
+      if (on && !timer) flicker();
+      if (!on && timer) { clearTimeout(timer); timer = null; }
+    }
+    // Sólo late mientras se ve: fuera de pantalla no gasta batería.
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) { entries.forEach(function (en) { play(en.isIntersecting); }); }, { threshold: 0.05 }).observe(stage);
+    } else { play(true); }
+    document.addEventListener('visibilitychange', function () { play(!document.hidden); });
+  }
+
+  // ── Botones: foco de luz que sigue al puntero y leve atracción magnética (sólo ratón) ──
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !reduce) {
+    document.querySelectorAll('.btn').forEach(function (btn) {
+      var magnetic = btn.classList.contains('magnetic');
+      btn.addEventListener('pointermove', function (e) {
+        var r = btn.getBoundingClientRect();
+        var x = e.clientX - r.left, y = e.clientY - r.top;
+        btn.style.setProperty('--px', x + 'px');
+        btn.style.setProperty('--py', y + 'px');
+        if (magnetic) {
+          btn.style.setProperty('--mx', ((x - r.width / 2) / r.width * 8).toFixed(2) + 'px');
+          btn.style.setProperty('--my', ((y - r.height / 2) / r.height * 6).toFixed(2) + 'px');
+        }
+      });
+      btn.addEventListener('pointerleave', function () {
+        btn.style.setProperty('--py', '-60%');
+        btn.style.removeProperty('--mx');
+        btn.style.removeProperty('--my');
+      });
+    });
   }
 
   var y = document.getElementById('year');

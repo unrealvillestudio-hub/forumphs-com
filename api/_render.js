@@ -61,7 +61,10 @@ a{color:inherit}
    versalitas de 11 px que caen donde caben. Desde 720 px es una sola fila fija. */
 .topbar{border-bottom:1px solid var(--chalk-12);background:rgba(14,16,24,.92);position:relative;z-index:10;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(196,98,45,.6) 30%,rgba(92,52,114,.75) 65%,transparent)}
-.topbar .wrap{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 12px;max-width:1080px;padding-top:10px}
+/* flex con envoltura y min-width:0: con el texto ampliado del teléfono, la marca y el botón
+   ya no empujan la cabecera fuera de la pantalla — el botón baja de línea si no cabe. */
+.topbar .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;max-width:1080px;padding-top:10px}
+.topbar .wrap>*{min-width:0}
 .mark{text-decoration:none;display:inline-flex;align-items:center;min-height:48px}
 /* ── SISTEMA DE WORDMARK ─────────────────────────────────────────────────────
    Portado de BluePrints/brands/ForumPHs/assets/ForumPHs_Amatista_Carbon_vFINAL.html.
@@ -72,10 +75,11 @@ a{color:inherit}
    jerarquia interna, y reducir una parte rompe el sistema. */
 ${WORDMARK_GEOMETRY}
 .mark b{color:var(--terra);font-weight:600}
-.topbar .cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:4px;background:var(--amethyst);border:1px solid rgba(234,217,245,.28);color:var(--chalk);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;transition:filter .18s var(--ease),transform .18s var(--ease)}
-.topbar .cta:hover{filter:brightness(1.18);transform:translateY(-1px)}
-.topbar nav{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;margin-top:6px;font-family:var(--font-editorial);font-weight:400;font-size:15px;letter-spacing:.1em;text-transform:uppercase}
-.topbar nav a{position:relative;display:flex;align-items:center;justify-content:center;min-height:48px;color:var(--chalk-42);text-decoration:none;white-space:nowrap;transition:color .18s var(--ease)}
+.topbar .cta,.closing a{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;border-radius:6px;color:var(--chalk);font-size:14px;font-weight:600;line-height:1.25;text-align:center;text-decoration:none;text-shadow:0 1px 1px rgba(0,0,0,.35);background:linear-gradient(180deg,#74499C 0%,var(--amethyst) 52%,#4A2A5D 100%);border:1px solid rgba(234,217,245,.34);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -2px 0 rgba(0,0,0,.3),0 1px 1px rgba(0,0,0,.45),0 6px 14px -4px rgba(0,0,0,.6),0 14px 30px -12px rgba(124,74,166,.85);transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .18s}
+.topbar .cta:active,.closing a:active{transform:translateY(1px) scale(.985);box-shadow:inset 0 2px 8px rgba(0,0,0,.38),0 1px 2px rgba(0,0,0,.4)}
+@media(hover:hover) and (pointer:fine){.topbar .cta:hover,.closing a:hover{transform:translateY(-2px);border-color:rgba(234,217,245,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.36),inset 0 -2px 0 rgba(0,0,0,.3),0 12px 22px -6px rgba(0,0,0,.6),0 22px 46px -12px rgba(150,96,196,.95),0 0 0 4px rgba(92,52,114,.18)}}
+.topbar nav{flex:1 0 100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:2px;font-family:var(--font-editorial);font-weight:400;font-size:15px;letter-spacing:.08em;text-transform:uppercase}
+.topbar nav a{position:relative;display:flex;align-items:center;justify-content:center;min-height:48px;padding:6px 4px;text-align:center;line-height:1.2;color:var(--chalk-42);text-decoration:none;transition:color .18s var(--ease)}
 .topbar nav a::after{content:'';position:absolute;left:18%;right:18%;bottom:0;height:2px;background:currentColor;transform:scaleX(0);transition:transform .25s var(--ease)}
 .topbar nav a:hover,.topbar nav a[aria-current]{color:var(--chalk)}
 .topbar nav a[aria-current]::after,.topbar nav a:hover::after{transform:scaleX(1)}
@@ -128,7 +132,8 @@ article p:last-child{margin-bottom:0}
 .related li a:hover::after{transform:translateX(3px);color:var(--terra)}
 /* Paginación: dos botones de verdad, mitad y mitad, 52 px de alto. */
 .pager{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:32px 0 0;border-top:1px solid var(--chalk-12);margin-top:36px}
-.pager a{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px 14px;font-size:14px;font-weight:500;letter-spacing:.04em;text-decoration:none;color:var(--chalk);background:var(--graphite);border:1px solid var(--chalk-12);border-radius:4px;transition:border-color .18s var(--ease),background .18s var(--ease)}
+.pager a{display:flex;align-items:center;justify-content:center;min-height:52px;padding:10px 14px;font-size:14px;font-weight:500;letter-spacing:.04em;text-align:center;text-decoration:none;color:var(--chalk);background:linear-gradient(180deg,rgba(240,237,232,.07),rgba(240,237,232,.02));border:1px solid var(--chalk-12);border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 8px 20px -12px rgba(0,0,0,.8);transition:border-color .18s var(--ease),transform .18s var(--ease)}
+.pager a:active{transform:translateY(1px)}
 .pager a:hover{border-color:var(--am-l);background:var(--surface)}
 .pager .void{visibility:hidden}
 .empty{padding:48px 0;color:var(--chalk-42);font-family:var(--font-serif);font-size:19px}
@@ -137,8 +142,7 @@ article p:last-child{margin-bottom:0}
 /* Cierre con salida: el lector que terminó de leer tiene a un toque el diagnóstico. */
 .closing{margin-top:56px;padding:26px 22px;border:1px solid var(--chalk-12);border-top:3px solid var(--terra);border-radius:6px;background:var(--graphite)}
 .closing p{font-family:var(--font-serif);font-size:21px;line-height:1.35;margin-bottom:16px}
-.closing a{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:4px;background:var(--amethyst);border:1px solid rgba(234,217,245,.28);color:var(--chalk);font-weight:600;text-decoration:none;transition:filter .18s var(--ease)}
-.closing a:hover{filter:brightness(1.18)}
+.closing a{display:flex;min-height:52px;font-size:15px}
 footer{margin-top:64px;background:var(--am-d);border-top:2px solid var(--amethyst);padding:28px 0 calc(36px + env(safe-area-inset-bottom));font-size:13px;color:rgba(240,237,232,.72)}
 footer .wrap{display:flex;flex-direction:column;gap:12px}
 footer .links{display:flex;flex-wrap:wrap;gap:0 20px}
@@ -147,9 +151,11 @@ footer a:hover{color:#fff}
 @media(min-width:720px){
   .wrap{padding:0 28px}
   .topbar{position:sticky;top:0}
-  .topbar .wrap{grid-template-columns:1fr auto auto;min-height:72px;padding-top:0}
-  .topbar nav{grid-column:auto;display:flex;gap:4px;margin:0;font-size:14px}
-  .topbar .cta{order:3;margin-left:12px}
+  .topbar .wrap{flex-wrap:nowrap;min-height:72px;padding-top:0}
+  .mark{margin-right:auto}
+  .topbar nav{flex:0 1 auto;display:flex;gap:4px;margin:0;font-size:14px}
+  .topbar nav a{white-space:nowrap}
+  .topbar .cta{order:3;margin-left:12px;white-space:nowrap}
   .topbar nav a{padding:0 12px}
   .topbar nav a::after{left:12px;right:12px;bottom:10px}
   .hero{padding:64px 0 40px}
