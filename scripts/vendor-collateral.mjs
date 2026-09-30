@@ -115,8 +115,17 @@ async function vendorChart(requestedVersion) {
 // La licencia SIL Open Font de estas familias permite el alojamiento propio; por eso
 // interiorizarlas es legítimo y no sólo conveniente.
 
-async function vendorFonts() {
-  const href = `https://fonts.googleapis.com/css2?family=${FONT_FAMILIES.join('&family=')}&display=swap`;
+// Parametrizada para que el sitio público interiorice SUS familias con la misma lógica
+// (`scripts/vendor-site-fonts.mjs`) en vez de copiarla. Sin argumentos produce
+// exactamente lo mismo que antes: las familias y la carpeta del material comercial.
+export async function vendorFonts({
+  families = FONT_FAMILIES,
+  outDir = OUT_DIR,
+  fontDir = FONT_DIR,
+  generator = 'scripts/vendor-collateral.mjs',
+  purpose = 'Servido desde el propio proyecto para que abrir el material no filtre la IP del lector.',
+} = {}) {
+  const href = `https://fonts.googleapis.com/css2?family=${families.join('&family=')}&display=swap`;
   const css = await get(href, { asText: true, headers: { 'User-Agent': MODERN_UA } });
 
   // Cada @font-face viene precedido de un comentario con el nombre del subconjunto.
@@ -146,20 +155,20 @@ async function vendorFonts() {
   let bytes = 0;
   for (const [name, url] of downloads) {
     const buf = await get(url);
-    await writeFile(join(FONT_DIR, name), buf);
+    await writeFile(join(fontDir, name), buf);
     bytes += buf.length;
   }
 
   const header = [
-    '/* Tipografías interiorizadas por scripts/vendor-collateral.mjs — NO editar a mano.',
+    `/* Tipografías interiorizadas por ${generator} — NO editar a mano.`,
     ' * Origen: fonts.googleapis.com · Licencia: SIL Open Font License 1.1 (permite alojamiento propio).',
     ` * Subconjuntos conservados: ${[...KEEP_SUBSETS].join(', ')}.`,
-    ' * Servido desde el propio proyecto para que abrir el material no filtre la IP del lector.',
+    ` * ${purpose}`,
     ' */',
     '',
   ].join('\n');
 
-  await writeFile(join(OUT_DIR, 'fonts.css'), header + kept.join('\n\n') + '\n');
+  await writeFile(join(outDir, 'fonts.css'), header + kept.join('\n\n') + '\n');
   console.log(`  fonts.css              ${kept.length} @font-face`);
   console.log(`  fonts/*.woff2          ${downloads.size} archivos (${bytes} bytes)`);
 }
