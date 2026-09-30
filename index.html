@@ -592,7 +592,11 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 .net-trail { stroke-width: 1.4; stroke-linecap: round; }
 .net-beat { fill: none; stroke-width: 1; }
 .net-core-disc { stroke: #EAD9F5; stroke-opacity: 0.6; stroke-width: 1.2; }
-.net-core text { font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.26em; text-anchor: middle; }
+/* El logotipo en el núcleo es el mismo wordmark de la cabecera (.wm), en texto: nunca imagen. */
+.net-wm { font-size: 14.5px; text-anchor: middle; }
+.net-wm .f  { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.01em; fill: #fff; }
+.net-wm .ph { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.06em; fill: #C4622D; }
+.net-wm .s  { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.04em; fill: #C4622D; }
 .orbit-caption { max-width: 24rem; text-align: center; font-family: var(--font-editorial); font-size: 1.2rem; font-style: italic; line-height: 1.4; color: var(--text-2); }
 .orbit-caption span { color: var(--terra); }
 
@@ -1156,7 +1160,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <div class="net-stage" id="net-stage" aria-hidden="true">
         <svg class="net" viewBox="-200 -172 400 344" xmlns="http://www.w3.org/2000/svg" focusable="false">
           <defs>
-            <radialGradient id="nc-fill" cx="0.36" cy="0.3" r="0.8"><stop offset="0" stop-color="#8A5CB0"/><stop offset="0.5" stop-color="#5C3472"/><stop offset="1" stop-color="#2A1636"/></radialGradient>
+            <radialGradient id="nc-fill" r="0.5"><stop offset="0" stop-color="#171320"/><stop offset="0.62" stop-color="#2A1636"/><stop offset="1" stop-color="#5C3472"/></radialGradient>
             <radialGradient id="nc-glow"><stop offset="0" stop-color="#9B6CC4" stop-opacity="0.55"/><stop offset="0.55" stop-color="#5C3472" stop-opacity="0.18"/><stop offset="1" stop-color="#5C3472" stop-opacity="0"/></radialGradient>
             <radialGradient id="np-out"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.9"/><stop offset="0.35" stop-color="#EAD9F5" stop-opacity="0.45"/><stop offset="1" stop-color="#EAD9F5" stop-opacity="0"/></radialGradient>
             <radialGradient id="np-in"><stop offset="0" stop-color="#FFF1E6" stop-opacity="0.9"/><stop offset="0.35" stop-color="#F2A77A" stop-opacity="0.5"/><stop offset="1" stop-color="#C4622D" stop-opacity="0"/></radialGradient>
@@ -1167,12 +1171,11 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
           <g class="net-pulses"></g>
           <g class="net-nodes"></g>
           <circle class="net-core-glow" r="86" fill="url(#nc-glow)"/>
-          <circle class="net-beat" r="38" stroke="#C4622D" opacity="0"/>
-          <circle class="net-beat" r="38" stroke="#EAD9F5" opacity="0"/>
+          <circle class="net-beat" r="42" stroke="#C4622D" opacity="0"/>
+          <circle class="net-beat" r="42" stroke="#EAD9F5" opacity="0"/>
           <g class="net-core">
-            <circle class="net-core-disc" r="38" fill="url(#nc-fill)"/>
-            <text y="-3" fill="#EAD9F5">FORUM</text>
-            <text y="11" fill="#F2A77A">PHS</text>
+            <circle class="net-core-disc" r="42" fill="url(#nc-fill)"/>
+            <text class="net-wm" y="5"><tspan class="f">Forum</tspan><tspan class="ph">PH</tspan><tspan class="s">s</tspan></text>
           </g>
         </svg>
       </div>
@@ -1602,7 +1605,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
     };
     var gLinks = nstage.querySelector('.net-links'), gPulses = nstage.querySelector('.net-pulses'), gNodes = nstage.querySelector('.net-nodes');
     var core = nstage.querySelector('.net-core'), coreGlow = nstage.querySelector('.net-core-glow'), beats = nstage.querySelectorAll('.net-beat');
-    var CORE_R = 38, TAU = Math.PI * 2, BEAT = 1.6;
+    var CORE_R = 42, TAU = Math.PI * 2, BEAT = 1.6;
     // Dos órbitas que giran en sentidos opuestos; `speed` en vueltas por segundo.
     var RINGS = [{ r: 94, n: 7, speed: 1 / 64, min: 8, max: 15 }, { r: 144, n: 9, speed: -1 / 96, min: 9, max: 19 }];
     var BLDG = 'M-5.5 7V-6H5.5V7ZM-5.5-2.5H5.5M-1.8 7V3H1.8V7';
