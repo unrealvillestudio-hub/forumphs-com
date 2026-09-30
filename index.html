@@ -154,7 +154,7 @@ button { font: inherit; color: inherit; }
    min-width:0 devuelve el control al ancho de la pantalla. */
 .container > *, .hero-grid > *, .about-grid > *, .dashboard-grid > *, .props-layout > *,
 .faq-grid > *, .contact-grid > *, .footer-grid > *, .form-row > *, .header-inner > *,
-.prop-nodes > *, .services-grid > *, .bi-grid > *, .testi-grid > *, .faq-list > *, .contact-list > *, .points > * { min-width: 0; }
+.services-grid > *, .bi-grid > *, .testi-grid > *, .faq-list > *, .contact-list > *, .points > * { min-width: 0; }
 h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 
 /* ── WORDMARK — siempre HTML/CSS, nunca imagen (BP → wordmark). Las tres partes comparten
@@ -165,6 +165,7 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 .wm .s  { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.04em; color: var(--terra); }
 .wm-nav > span { font-size: 22px; }
 .wm-md > span { font-size: 26px; }
+.wm-sm > span { font-size: 20px; }
 .wm-lg > span { font-size: 34px; }
 
 /* ── Tipografía base ── */
@@ -572,18 +573,84 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 .bi-close { margin: 44px auto 0; max-width: 40rem; text-align: center; font-family: var(--font-editorial); font-size: 1.45rem; font-style: italic; color: var(--text-2); line-height: 1.45; }
 
 /* Propiedades */
-.props-layout { display: grid; gap: 36px; align-items: center; }
-.props-network { width: 100%; max-width: 420px; margin: 8px auto 0; }
-.prop-nodes { display: grid; gap: 10px; }
-.prop-node { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--am-l); border-radius: var(--radius); transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
-.prop-node.t { border-left-color: var(--terra); }
-.prop-node:hover { transform: translateX(3px); border-color: rgba(234,217,245,0.2); }
-.prop-node-icon { width: 38px; height: 38px; flex-shrink: 0; border-radius: var(--radius); background: var(--am-tint); display: flex; align-items: center; justify-content: center; }
-.prop-node-info { flex: 1; min-width: 0; }
-.prop-node-name { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.35; }
-.prop-node-meta { font-size: 13px; color: var(--text-3); margin-top: 2px; }
-.prop-node-units { font-family: var(--font-display); font-size: 1.5rem; font-weight: 500; color: var(--am-l); white-space: nowrap; }
-.prop-node.t .prop-node-units { color: var(--terra); }
+.props-layout { display: grid; gap: 28px; align-items: center; }
+/* ── Órbita de PH: el sistema en el centro y los edificios girando a su alrededor en tres
+   órbitas inclinadas (CSS 3D). Cada nodo es un PH, de tamaño distinto; los mayores llevan
+   el destello de contorno de los CTA y todos centellean al azar. Ninguno lleva nombre ni
+   cifra: la sección habla del estándar, no del inventario. Los nodos los genera el script. */
+.orbit-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.orbit-stage {
+  --R3: min(158px, 41vw); --R2: calc(var(--R3) * 0.76); --R1: calc(var(--R3) * 0.52); --tilt: 66deg;
+  position: relative; width: 100%; height: calc(var(--R3) * 1.3 + 90px); overflow: hidden;
+  display: flex; align-items: center; justify-content: center; perspective: 1100px;
+}
+/* El resplandor del núcleo vive FUERA del contexto 3D, en un plano normal detrás. */
+.orbit-glow { position: absolute; left: 50%; top: 50%; width: calc(var(--R3) * 1.5); height: calc(var(--R3) * 1.5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(124,74,166,0.55) 0%, rgba(92,52,114,0.22) 35%, transparent 68%); pointer-events: none; animation: glow-beat 1.6s ease-out infinite; }
+@keyframes glow-beat { 0%, 100% { opacity: 0.75; } 12% { opacity: 1; } 30% { opacity: 0.85; } }
+.orbit-system { position: relative; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(var(--tilt)); }
+.ring {
+  position: absolute; left: 0; top: 0; width: calc(var(--r) * 2); height: calc(var(--r) * 2);
+  margin: calc(var(--r) * -1) 0 0 calc(var(--r) * -1); border-radius: 50%;
+  border: 1px solid rgba(234,217,245,0.16); transform-style: preserve-3d;
+  animation: orbit-spin var(--t) linear infinite;
+}
+.ring::before { content: ''; position: absolute; inset: -1px; border-radius: 50%; border-top: 1.5px solid rgba(255,255,255,0.8); border-right: 1px solid rgba(234,217,245,0.3); }
+.ring.r1 { --r: var(--R1); --t: 38s; }
+.ring.r2 { --r: var(--R2); --t: 58s; animation-direction: reverse; }
+.ring.r3 { --r: var(--R3); --t: 84s; }
+@keyframes orbit-spin { to { transform: rotateZ(360deg); } }
+.pnode { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; transform: rotate(var(--a)) translateX(var(--r)) rotate(calc(var(--a) * -1)); }
+/* El nodo se mantiene de frente a la cámara: deshace el giro de su órbita y la inclinación. */
+.pnode-b {
+  position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%;
+  animation: billboard var(--t) linear infinite;
+  /* Sin box-shadow ni filter: en un contexto 3D, Chrome recorta el halo en un cuadrado. */
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,0.9) 0, var(--c1) 26%, var(--c2) 68%, #160d20 100%);
+}
+.ring.r2 .pnode-b { animation-direction: reverse; }
+@keyframes billboard { from { transform: rotateZ(0deg) rotateX(calc(var(--tilt) * -1)); } to { transform: rotateZ(-360deg) rotateX(calc(var(--tilt) * -1)); } }
+.pnode-b.am { --c1: #EAD9F5; --c2: #5C3472; --glow: rgba(196,160,230,0.55); }
+.pnode-b.tr { --c1: #F6C3A2; --c2: #C4622D; --glow: rgba(196,98,45,0.6); }
+.pnode-b.big::after {
+  /* edificio en miniatura dentro de los nodos grandes */
+  content: ''; position: absolute; left: 30%; right: 30%; top: 26%; bottom: 24%;
+  border: 1px solid rgba(255,255,255,0.75); border-bottom-width: 2px;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.55) 3px 4px);
+  opacity: 0.8;
+}
+.pnode-b.big::before {
+  /* destello: un arco de luz que recorre el contorno (sin máscaras: en 3D dejan esquinas) */
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  border: 1.5px solid transparent; border-top-color: rgba(255,255,255,0.95); border-right-color: rgba(255,255,255,0.35);
+  animation: arc-spin 2.8s linear infinite;
+}
+@keyframes arc-spin { to { transform: rotate(360deg); } }
+.pnode-b.flash { animation: billboard var(--t) linear infinite, node-flash 900ms ease-out 1; }
+.ring.r2 .pnode-b.flash { animation-direction: reverse, normal; }
+@keyframes node-flash { 0% { opacity: 1; } 20% { opacity: 0.25; } 45% { opacity: 1; } 100% { opacity: 1; } }
+.orbit-core {
+  position: absolute; left: 0; top: 0; width: 96px; height: 96px; margin: -48px 0 0 -48px; border-radius: 50%;
+  transform: rotateX(calc(var(--tilt) * -1)) translateZ(1px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: radial-gradient(circle at 35% 28%, #8A5CB0 0%, #5C3472 45%, #2A1636 100%);
+  border: 1px solid rgba(234,217,245,0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -6px 14px rgba(0,0,0,0.45);
+  font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.24em; line-height: 1;
+}
+.orbit-core b { font-weight: 400; color: #EAD9F5; }
+.orbit-core i { font-style: normal; color: #F2A77A; }
+.orbit-core::before {
+  content: ''; position: absolute; inset: -2px; border-radius: 50%; padding: 2px;
+  background: conic-gradient(from var(--glint), transparent 0deg 230deg, rgba(255,255,255,0.95) 300deg, transparent 345deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: glint-spin 4s linear infinite;
+}
+.orbit-core::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid rgba(196,98,45,0.7); animation: core-pulse 1.6s ease-out infinite; }
+@keyframes core-pulse { 0% { transform: scale(1); opacity: 0.9; } 70% { transform: scale(1.7); opacity: 0; } 100% { transform: scale(1.7); opacity: 0; } }
+.orbit-stage.paused .ring, .orbit-stage.paused .pnode-b, .orbit-stage.paused .orbit-core::after, .orbit-stage.paused .orbit-glow { animation-play-state: paused; }
+.orbit-caption { max-width: 24rem; text-align: center; font-family: var(--font-editorial); font-size: 1.2rem; font-style: italic; line-height: 1.4; color: var(--text-2); }
+.orbit-caption span { color: var(--terra); }
 
 /* Testimonios */
 .testi-grid { display: grid; gap: 12px; }
@@ -683,7 +750,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 .form-sent p + p { font-size: 14px; color: var(--text-3); line-height: 1.7; }
 
 /* ══ PIE — fondo Amatista Dark y borde de acento (BP · ui-ux-layer §5) ═════════════ */
-.site-footer { position: relative; z-index: 1; background: var(--am-d); border-top: 2px solid var(--am); padding: 52px 0 calc(28px + env(safe-area-inset-bottom)); }
+.site-footer { position: relative; z-index: 1; background: var(--am-d); border-top: 2px solid var(--am); padding: 52px 0 0; }
 .footer-grid { display: grid; gap: 32px; }
 .footer-slogan { margin-top: 14px; font-family: var(--font-display); font-size: 1.1rem; font-style: italic; color: rgba(240,237,232,0.72); line-height: 1.5; max-width: 22rem; }
 .footer-slogan span { color: #F2A77A; }
@@ -691,7 +758,13 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 .footer-links { list-style: none; display: grid; gap: 2px; }
 .footer-links a { display: inline-flex; align-items: center; min-height: 40px; font-size: 15px; color: rgba(240,237,232,0.86); text-decoration: none; transition: color var(--dur-fast); }
 .footer-links a:hover { color: #fff; }
-.footer-bottom { margin-top: 36px; padding-top: 22px; border-top: 1px solid rgba(234,217,245,0.14); display: flex; flex-direction: column; gap: 18px; font-size: 12px; color: rgba(240,237,232,0.6); }
+/* Banda de firma: pie estándar UNRLVL (BluePrints BP_BRAND_UNRLVL v1.5 → footer): fondo
+   carbon #0F0F0F independiente del documento, borde superior 2 px #00FFD1 y tres columnas
+   — logo del CLIENTE · derechos · firma del estudio. Son colores del estudio, no de la
+   marca: viven sólo en esta banda. */
+.unrlvl-band { margin-top: 44px; background: #0F0F0F; border-top: 2px solid #00FFD1; padding: 22px 0 calc(22px + env(safe-area-inset-bottom)); }
+.unrlvl-grid { display: grid; gap: 16px; justify-items: center; text-align: center; }
+.unrlvl-rights { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.06em; line-height: 1.7; color: rgba(242,240,236,0.55); }
 @keyframes prompt-blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
 .credit-kicker { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(242,240,236,0.45); }
 .lt-logotype { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.04em; line-height: 1; white-space: nowrap; }
@@ -745,7 +818,9 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   .form-card { padding: 34px 32px; }
   .cta-actions { grid-template-columns: 1fr 1fr; max-width: 34rem; }
   .footer-grid { grid-template-columns: 1.4fr 1fr 1fr; }
-  .footer-bottom { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+  .unrlvl-grid { grid-template-columns: 1fr 1.4fr 1fr; align-items: center; }
+  .unrlvl-grid > :first-child { justify-self: start; }
+  .unrlvl-grid > :last-child { justify-self: end; text-align: right; }
   .svc-card, .bi-quote, .testi-item { padding: 32px 28px; }
 }
 
@@ -759,7 +834,8 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   .tower-stage { --tw: 150px; --th: 350px; height: calc(var(--th) + 170px); }
   .about-grid { grid-template-columns: 1.15fr 0.85fr; gap: 72px; align-items: start; }
   .dashboard-grid { grid-template-columns: 1fr 1.25fr; gap: 64px; }
-  .props-layout { grid-template-columns: 1fr 1fr; gap: 64px; }
+  .props-layout { grid-template-columns: 0.9fr 1.1fr; gap: 48px; }
+  .orbit-stage { --R3: 205px; }
   .faq-grid { grid-template-columns: 1.7fr 1fr; gap: 40px; align-items: start; }
   .faq-aside { position: sticky; top: calc(var(--header-h) + 24px); }
   .contact-grid { grid-template-columns: 0.9fr 1.1fr; gap: 56px; }
@@ -802,7 +878,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .js .reveal { opacity: 1; transform: none; }
-  .tower { animation: none; }
+  .tower, .ring, .pnode-b { animation: none; }
   .btn-primary::before, .btn-wa::before, .btn::after { animation: none; opacity: 0; }
 }
 </style>
@@ -1132,44 +1208,18 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <div class="eyebrow">Propiedades activas</div>
       <h2 class="h2">El patrimonio de +1,500 familias. Un solo <em>estándar.</em></h2>
       <p class="lede">No hay clientes de primera y de segunda. El protocolo es el mismo en la unidad 1 y en la unidad 1,500.</p>
-      <svg class="props-network" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <g stroke="rgba(234,217,245,0.22)" stroke-width="1" stroke-dasharray="4,3">
-          <line x1="200" y1="122" x2="200" y2="58"/><line x1="228" y1="136" x2="320" y2="88"/><line x1="228" y1="164" x2="320" y2="212"/><line x1="200" y1="178" x2="200" y2="242"/><line x1="172" y1="164" x2="80" y2="212"/><line x1="172" y1="136" x2="80" y2="88"/><line x1="232" y1="150" x2="340" y2="150"/>
-        </g>
-        <circle cx="200" cy="150" r="30" fill="rgba(92,52,114,0.45)" stroke="#EAD9F5" stroke-opacity=".7" stroke-width="1.5"/>
-        <circle cx="200" cy="150" r="30" fill="none" stroke="#C4622D" stroke-opacity=".55" stroke-width="1"><animate attributeName="r" values="30;50;30" dur="3.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0;0.8" dur="3.2s" repeatCount="indefinite"/></circle>
-        <text x="200" y="147" text-anchor="middle" fill="#EAD9F5" font-family="Cinzel,serif" font-size="7" letter-spacing="2">FORUM</text>
-        <text x="200" y="159" text-anchor="middle" fill="#C4622D" font-family="Cinzel,serif" font-size="7" letter-spacing="2">PHS</text>
-        <g fill="#141927" stroke="rgba(234,217,245,0.4)" stroke-width="1">
-          <circle cx="200" cy="46" r="20"/><circle cx="330" cy="80" r="20"/><circle cx="330" cy="220" r="20"/><circle cx="200" cy="254" r="20"/><circle cx="70" cy="220" r="20"/><circle cx="70" cy="80" r="20"/><circle cx="352" cy="150" r="20"/>
-        </g>
-        <g fill="rgba(234,217,245,0.8)" font-family="DM Sans,sans-serif" font-size="7" text-anchor="middle">
-          <text x="200" y="49">P-01</text><text x="330" y="83">P-02</text><text x="330" y="223">P-03</text><text x="200" y="257">P-04</text><text x="70" y="223">P-05</text><text x="70" y="83">P-06</text><text x="352" y="153">P-07</text>
-        </g>
-      </svg>
     </div>
-
-    <div class="prop-nodes">
-      <div class="prop-node reveal">
-        <div class="prop-node-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="11" rx="1" stroke="#EAD9F5"/><line x1="3" y1="8" x2="15" y2="8" stroke="#EAD9F5" stroke-opacity=".5" stroke-width=".8"/><rect x="7" y="11" width="4" height="5" fill="#EAD9F5" fill-opacity=".5"/></svg></div>
-        <div class="prop-node-info"><div class="prop-node-name">Torre Residencial · Ciudad de Panamá</div><div class="prop-node-meta">Gestionando desde 2019 · Bajo Régimen de PH</div></div>
-        <div class="prop-node-units">280u</div>
+    <div class="orbit-wrap">
+      <div class="orbit-stage" id="orbit-stage" aria-hidden="true">
+        <div class="orbit-glow"></div>
+        <div class="orbit-system" id="orbit-system">
+          <div class="ring r1"></div>
+          <div class="ring r2"></div>
+          <div class="ring r3"></div>
+          <div class="orbit-core"><b>FORUM</b><i>PHS</i></div>
+        </div>
       </div>
-      <div class="prop-node t reveal d1">
-        <div class="prop-node-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="11" rx="1" stroke="#C4622D"/><line x1="3" y1="8" x2="15" y2="8" stroke="#C4622D" stroke-opacity=".5" stroke-width=".8"/><rect x="7" y="11" width="4" height="5" fill="#C4622D" fill-opacity=".5"/></svg></div>
-        <div class="prop-node-info"><div class="prop-node-name">PH Residencial · San Francisco</div><div class="prop-node-meta">48 unidades · Administración integral</div></div>
-        <div class="prop-node-units">48u</div>
-      </div>
-      <div class="prop-node reveal">
-        <div class="prop-node-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="11" rx="1" stroke="#EAD9F5"/><line x1="3" y1="8" x2="15" y2="8" stroke="#EAD9F5" stroke-opacity=".5" stroke-width=".8"/><rect x="7" y="11" width="4" height="5" fill="#EAD9F5" fill-opacity=".5"/></svg></div>
-        <div class="prop-node-info"><div class="prop-node-name">Conjunto Residencial · Costa del Este</div><div class="prop-node-meta">Gestión de morosidad · SLA activo</div></div>
-        <div class="prop-node-units">196u</div>
-      </div>
-      <div class="prop-node t reveal d1">
-        <div class="prop-node-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="3" y="5" width="12" height="11" rx="1" stroke="#C4622D"/><line x1="3" y1="8" x2="15" y2="8" stroke="#C4622D" stroke-opacity=".5" stroke-width=".8"/><rect x="7" y="11" width="4" height="5" fill="#C4622D" fill-opacity=".5"/></svg></div>
-        <div class="prop-node-info"><div class="prop-node-name">5 PH adicionales</div><div class="prop-node-meta">Panamá · Bajo gestión ForumPHs</div></div>
-        <div class="prop-node-units">976u</div>
-      </div>
+      <p class="orbit-caption">Un solo sistema en el centro. <span>Cada edificio, en su órbita.</span></p>
     </div>
   </div>
 </section>
@@ -1397,8 +1447,11 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
         </ul>
       </div>
     </div>
-    <div class="footer-bottom">
-      <span>© <span id="year">2026</span> ForumPHs · Administración de Propiedad Horizontal · Panamá</span>
+  </div>
+  <div class="unrlvl-band">
+    <div class="container unrlvl-grid">
+      <span class="wm wm-sm" role="img" aria-label="ForumPHs"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
+      <span class="unrlvl-rights">© <span id="year">2026</span> ForumPHs — forumphs.com · Administración de Propiedad Horizontal · Panamá</span>
       <div class="credit">
         <span class="credit-kicker">Designed &amp; Developed by</span><br>
         <a href="https://unrealvillestudio.com" target="_blank" rel="noopener" aria-label="Unrealville Studio"><span class="lt-logotype"><span class="lt-chevron">&gt;</span><span class="lt-un">UNREAL</span><span class="lt-ille">VILLE</span><span class="lt-studio">studio</span></span></a><br>
@@ -1578,6 +1631,47 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       new IntersectionObserver(function (entries) { entries.forEach(function (en) { play(en.isIntersecting); }); }, { threshold: 0.05 }).observe(stage);
     } else { play(true); }
     document.addEventListener('visibilitychange', function () { play(!document.hidden); });
+  }
+
+  // ── Órbita de PH: nodos de tamaños distintos en tres órbitas, con centelleo al azar ──
+  var ostage = document.getElementById('orbit-stage');
+  if (ostage) {
+    var nodes = [];
+    var plan = { r1: 6, r2: 9, r3: 12 };
+    Object.keys(plan).forEach(function (cls) {
+      var ring = ostage.querySelector('.ring.' + cls);
+      var n = plan[cls];
+      var offset = Math.random() * 360;
+      for (var k = 0; k < n; k++) {
+        var a = offset + k * (360 / n) + (Math.random() * 14 - 7);
+        var size = Math.round(cls === 'r1' ? 8 + Math.random() * 14 : 8 + Math.random() * 24);
+        var holder = document.createElement('span');
+        holder.className = 'pnode';
+        holder.style.setProperty('--a', a.toFixed(1) + 'deg');
+        var b = document.createElement('span');
+        b.className = 'pnode-b ' + (Math.random() < 0.26 ? 'tr' : 'am') + (size >= 22 ? ' big' : '');
+        b.style.setProperty('--s', size + 'px');
+        holder.appendChild(b);
+        ring.appendChild(holder);
+        nodes.push(b);
+      }
+    });
+    var otimer = null;
+    function twinkle() {
+      var b = nodes[Math.floor(Math.random() * nodes.length)];
+      b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash');
+      otimer = setTimeout(twinkle, 260 + Math.random() * 900);
+    }
+    function oplay(on) {
+      ostage.classList.toggle('paused', !on);
+      if (reduce) return;
+      if (on && !otimer) twinkle();
+      if (!on && otimer) { clearTimeout(otimer); otimer = null; }
+    }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) { entries.forEach(function (en) { oplay(en.isIntersecting); }); }, { threshold: 0.05 }).observe(ostage);
+    } else { oplay(true); }
+    document.addEventListener('visibilitychange', function () { oplay(!document.hidden); });
   }
 
   // ── Botones: foco de luz que sigue al puntero y leve atracción magnética (sólo ratón) ──

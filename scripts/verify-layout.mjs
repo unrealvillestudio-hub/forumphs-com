@@ -39,8 +39,9 @@ await new Promise((r) => server.listen(0, r));
 const url = `http://localhost:${server.address().port}/`;
 
 // Elementos que pueden salirse a propósito: decorado recortado por su contenedor, capas
-// fijas y la franja de credenciales, que se desplaza en horizontal.
-const IGNORE = '.creds-track,.atmos,.drawer,.action-bar,.wa-float,svg,.tower-stage,.cta-bg-text,.skip-link';
+// fijas, la franja de credenciales (se desplaza en horizontal) y las escenas 3D, que
+// recortan su propio contenido.
+const IGNORE = '.creds-track,.atmos,.drawer,.action-bar,.wa-float,svg,.tower-stage,.orbit-stage,.cta-bg-text,.skip-link';
 
 const SCENARIOS = [[375, 1], [390, 1], [360, 1.3], [360, 1.5], [320, 1.5], [280, 1], [240, 1], [768, 1], [1280, 1]];
 const browser = await chromium.launch();
