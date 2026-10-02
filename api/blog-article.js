@@ -116,7 +116,7 @@ ${relatedShown.map((p) => `    <li><a class="rel" href="${escapeHtml(`${BLOG_PAT
   ${piece.image_url ? `<div class="cover"><img src="${escapeHtml(piece.image_url)}" alt="${escapeHtml(piece.title)}" loading="lazy" decoding="async"></div>` : ''}
 </div>
 <article>
-${paragraphs(piece.body)}
+${paragraphs(piece.body, piece.inline_images)}
 </article>
 ${relatedBlock}`;
 

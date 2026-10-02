@@ -48,6 +48,31 @@ const TRANSLATED = [
 ];
 let withTranslations = false;
 
+// Piezas con imágenes dentro del cuerpo (F2). Mismo patrón que el par de traducción: viven
+// APARTE y sólo entran cuando `withInlineImages` lo pide, para no mover los recuentos de las
+// demás secciones. Van primero y son las más recientes: la primera página del listado las
+// muestra, que es donde se comprueba el extracto.
+const INLINE_IMAGE_PIECES = [
+  { id: 'f2f2a001-0000-4000-8000-000000000001', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
+    domain: 'imagenes-en-el-cuerpo', status: 'published', created_at: '2026-09-30T10:00:00Z',
+    assets: { copy: { title: 'Pieza con imágenes en el cuerpo',
+      aife_filtered: 'Apertura breve.\n\n![img-1]\n\nSegundo párrafo con **negrita**.\n\n![img-2]\n\nTercer párrafo.\n\n![img-3]\n\nCuarto párrafo.' },
+      inline_images: [
+        { n: 1, after: 1, focus: 'Apertura breve.', alt: 'Una mesa "larga" & <vacía>', url: 'https://cdn.example.invalid/inline-1.png', path: 'p/inline-1.png', status: 'ok', attempts: 1 },
+        { n: 2, after: 2, focus: 'Tercer párrafo.', alt: 'Todavía planificada', url: null, path: null, status: 'planned' },
+        { n: 3, after: 3, focus: 'Cuarto párrafo.', alt: 'Servida sin https', url: 'http://cdn.example.invalid/inline-3.png', path: null, status: 'ok' },
+      ] } },
+  { id: 'f2f2a002-0000-4000-8000-000000000002', brand_id: 'BrandUnderTest', platform: 'chan_key', format: 'post',
+    domain: 'imagenes-que-no-llegaron', status: 'published', created_at: '2026-09-29T10:00:00Z',
+    assets: { copy: { title: 'Pieza con imágenes que no llegaron',
+      aife_filtered: 'Apertura de la segunda.\n\n![img-1]\n\nPárrafo medio.\n\n![img-2]\n\nCierre de la segunda.' },
+      // n=1 falló aunque trae url https: manda el estado, no la url. n=2 no tiene entrada.
+      inline_images: [
+        { n: 1, after: 1, focus: 'Apertura de la segunda.', alt: 'Fallida', url: 'https://cdn.example.invalid/fallida.png', path: null, status: 'failed', error: 'simulado' },
+      ] } },
+];
+let withInlineImages = false;
+
 // ── La marca N+1 ────────────────────────────────────────────────────────────────────
 // Otra marca, de otro rubro, otro país, otro idioma, otro `platform_key` y otro dominio.
 // Existe solo como DATO: no hay una línea de código que la nombre fuera de este fixture.
@@ -125,7 +150,7 @@ globalThis.fetch = async (url) => {
     const pk = /platform=eq\.([^&]+)/.exec(u);
     return json(200, pk ? own.filter(r => r.platform === decodeURIComponent(pk[1])) : own);
   }
-  let rows = (withTranslations ? [...PIECES, ...TRANSLATED] : PIECES)
+  let rows = [...(withInlineImages ? INLINE_IMAGE_PIECES : []), ...(withTranslations ? [...PIECES, ...TRANSLATED] : PIECES)]
     .map(p => ({ published_at: null, edited_at: null, updated_at: null, discarded_at: null, ...p }));
   // El descarte se filtra en PostgREST, no en el renderizador: el simulador tiene que
   // honrarlo o la prueba no probaría nada.
@@ -575,6 +600,99 @@ console.log('\n── 25 · «Sigue leyendo» lleva la imagen de cada artículo 
   // Las imágenes del carril llevan el titular en la franja inferior: ningún marco las recorta.
   const marcos = (r.body.match(/\.(?:card \.shot|related a\.rel \.thumb)(?: img)?\{[^}]*\}/g) || []).join(' ');
   check('las miniaturas se ven enteras: sin aspect-ratio ni object-fit:cover', marcos.length > 0 && !/aspect-ratio|object-fit:cover/.test(marcos), marcos);
+}
+
+console.log('\n── 26 · Imágenes dentro del artículo (F2): `![img-N]` pinta una figura o nada, nunca texto ──');
+// Contrato F2 (Sam, 2026-10-02): la marca viaja en el cuerpo y la imagen en
+// `assets.inline_images`. Sólo `ok` + url https pinta; todo lo demás desaparece, y en texto
+// plano la marca se quita siempre.
+{
+  scenario = 'happy'; topicScenario = 'happy'; withTranslations = false; withInlineImages = true;
+  const articleOf = (html) => html.slice(html.indexOf('<article>'), html.indexOf('</article>'));
+
+  let r = mockRes(); await blogArticle(mockReq({ slug: 'imagenes-en-el-cuerpo-f2f2a001' }), r);
+  check('la pieza con imágenes resuelve', r.statusCode === 200, r.statusCode);
+  let art = articleOf(r.body);
+  check('(a) marca con imagen ok → <figure> con <img>, src y alt escapados',
+    art.includes('<figure class="inline-figure"><img src="https://cdn.example.invalid/inline-1.png" alt="Una mesa &quot;larga&quot; &amp; &lt;vacía&gt;" loading="lazy" decoding="async"></figure>'), art);
+  check('(a) la figura queda donde estaba la marca: tras la entradilla, antes del segundo párrafo',
+    art.indexOf('<p class="lede">Apertura breve.</p>') >= 0
+      && art.indexOf('<p class="lede">Apertura breve.</p>') < art.indexOf('inline-1.png')
+      && art.indexOf('inline-1.png') < art.indexOf('Segundo párrafo'));
+  check('(b) imagen planned → nada: una sola figura en la pieza', (art.match(/<figure/g) || []).length === 1, (art.match(/<figure/g) || []).length);
+  check('(d) url no https → no se pinta', !r.body.includes('http://cdn.example.invalid/inline-3.png') && !r.body.includes('Servida sin https'));
+  check('ninguna marca a la vista en toda la página (cuerpo, meta description, JSON-LD)', !r.body.includes('![img-') && !r.body.includes('[img-'));
+  check('donde no se pinta, no queda un párrafo vacío', !/<p[^>]*>\s*<\/p>/.test(art) && !/\n\n/.test(art), art);
+
+  r = mockRes(); await blogArticle(mockReq({ slug: 'imagenes-que-no-llegaron-f2f2a002' }), r);
+  art = articleOf(r.body);
+  check('(b) imagen failed (aunque traiga url https) o marca sin entrada → nada',
+    r.statusCode === 200 && !art.includes('<figure') && !r.body.includes('fallida.png') && !r.body.includes('![img-'), art);
+  check('(b) los párrafos de alrededor se publican igual', art.includes('Párrafo medio.') && art.includes('Cierre de la segunda.'));
+
+  r = mockRes(); await blogIndex(mockReq(), r);
+  check('(c) el extracto del índice no contiene la marca',
+    r.body.includes('Apertura breve. Segundo párrafo con negrita. Tercer párrafo. Cuarto párrafo.') && !r.body.includes('![img-'),
+    (/<h2>Pieza con imágenes en el cuerpo<\/h2>[\s\S]{0,300}/.exec(r.body) || [''])[0]);
+
+  // La figura ocupa la columna a su propia proporción: nada de aspect-ratio, object-fit ni
+  // mínimos fijos — así cabe igual a 300 px de ancho efectivo.
+  r = mockRes(); await blogArticle(mockReq({ slug: 'imagenes-en-el-cuerpo-f2f2a001' }), r);
+  const fig = (r.body.match(/article \.inline-figure(?: img)?\{[^}]*\}/g) || []).join(' ');
+  check('CSS de la figura: ancho de la columna, height:auto, sin recorte ni mínimo fijo',
+    /img\{[^}]*width:100%/.test(fig) && /height:auto/.test(fig) && !/aspect-ratio|object-fit|min-width|\b\d{3,}px/.test(fig), fig);
+
+  // Bloque puro.
+  const { paragraphs } = await import('../api/_render.js');
+  const { blocksOf, stripMarks, inlineImagesOf, INLINE_IMAGES_CONTRACT_MAX } = await import('../api/_inline.js');
+  const ok = (n, extra = {}) => ({ n, status: 'ok', url: `https://cdn.example.invalid/u${n}.png`, alt: `alt ${n}`, ...extra });
+  check('blocksOf reconoce el bloque de imagen, con espacios a los lados',
+    JSON.stringify(blocksOf('A.\n\n  ![img-2]  \n\nB.')) === JSON.stringify([{ t: 'p', text: 'A.' }, { t: 'img', n: 2 }, { t: 'p', text: 'B.' }]),
+    JSON.stringify(blocksOf('A.\n\n  ![img-2]  \n\nB.')));
+  check('dentro de una frase, o con más texto en el bloque, la marca es texto',
+    blocksOf('Ver ![img-1] aquí.\n\n![img-1]\nmás').every((b) => b.t === 'p'));
+  const fuera = paragraphs('A.\n\n![img-4]\n\n![img-0]\n\nB.', [ok(1), ok(4), ok(0)]);
+  check('n fuera de 1..INLINE_IMAGES_CONTRACT_MAX → ni figura ni texto',
+    INLINE_IMAGES_CONTRACT_MAX === 3 && !fuera.includes('img-') && !fuera.includes('<figure'), fuera);
+  check('la misma imagen se pinta una sola vez aunque su marca se repita',
+    (paragraphs('A.\n\n![img-1]\n\nB.\n\n![img-1]\n\nC.', [ok(1)]).match(/<figure/g) || []).length === 1);
+  check('el renderizador filtra por su cuenta: planned o url no https no pintan aunque le lleguen',
+    !paragraphs('A.\n\n![img-1]\n\nB.', [ok(1, { status: 'planned' })]).includes('<figure')
+      && !paragraphs('A.\n\n![img-1]\n\nB.', [ok(1, { url: 'javascript:alert(1)' })]).includes('<figure')
+      && !paragraphs('A.\n\n![img-1]\n\nB.', [ok(1, { url: '//cdn.example.invalid/x.png' })]).includes('<figure'));
+  check('sin imágenes (la llamada de antes) la marca desaparece y el resto queda igual',
+    paragraphs('A.\n\n![img-1]\n\nB.') === '<p class="lede">A.</p>\n<p>B.</p>', paragraphs('A.\n\n![img-1]\n\nB.'));
+  check('inlineImagesOf: sólo ok + https + n del contrato; alt siempre string; gana la primera',
+    JSON.stringify(inlineImagesOf([ok(1), ok(1, { url: 'https://otra.example.invalid/x.png' }), ok(2, { status: 'failed' }), ok(3, { alt: 7 }), ok(5), null, 'x']))
+      === JSON.stringify([{ n: 1, status: 'ok', url: 'https://cdn.example.invalid/u1.png', alt: 'alt 1' }, { n: 3, status: 'ok', url: 'https://cdn.example.invalid/u3.png', alt: '' }]));
+  check('inlineImagesOf con el dato ausente o malformado → []', [undefined, null, {}, 'x', 3].every((v) => inlineImagesOf(v).length === 0));
+  // La pieza llega al renderizador YA filtrada y el renderizador filtra otra vez: el filtro
+  // tiene que dejar pasar su propia salida, o ninguna imagen se pintaría nunca.
+  const unaVez = inlineImagesOf([ok(1), ok(2, { status: 'planned' })]);
+  check('inlineImagesOf es idempotente: su salida vuelve a pasar el filtro',
+    JSON.stringify(inlineImagesOf(unaVez)) === JSON.stringify(unaVez) && unaVez.length === 1);
+  check('stripMarks quita el bloque de la marca entero', stripMarks('A.\n\n![img-1]\n\nB.') === 'A.\n\nB.', JSON.stringify(stripMarks('A.\n\n![img-1]\n\nB.')));
+
+  // MULTIMARCA · la marca N+1, de otro rubro, otro país y otro idioma, sólo como DATO: su
+  // imagen sale de su CDN con su alt, y nada de la marca bajo prueba se cuela.
+  const otra = { id: 'abcd0002-0000-4000-8000-000000000002', brand_id: OTHER_BRAND, platform: 'otro_chan', format: 'post',
+    domain: 'harbour-notes', status: 'published', created_at: '2026-09-28T10:00:00Z',
+    assets: { copy: { title: 'Notes from a harbour', raw: 'Dawn at the pier.\n\n![img-2]\n\nNets on the dock.\n\n![img-1]\n\nEnd.' }, language: 'en-CA',
+      inline_images: [{ n: 2, status: 'ok', url: 'https://media.otra-marca.example.invalid/f2/2.webp', alt: 'Fishing boats moored at dawn' },
+        { n: 1, status: 'failed', url: null }] } };
+  OTHER_BRAND_PIECES[OTHER_BRAND].push(otra);
+  const brandBefore = process.env.BRAND_ID;
+  process.env.BRAND_ID = OTHER_BRAND;
+  r = mockRes(); await blogArticle(mockReq({ slug: 'harbour-notes-abcd0002' }), r);
+  process.env.BRAND_ID = brandBefore;
+  OTHER_BRAND_PIECES[OTHER_BRAND].pop();
+  art = articleOf(r.body);
+  check('marca N+1: su figura, su alt y su CDN; la imagen fallida no deja rastro',
+    r.statusCode === 200
+      && art.includes('<figure class="inline-figure"><img src="https://media.otra-marca.example.invalid/f2/2.webp" alt="Fishing boats moored at dawn" loading="lazy" decoding="async"></figure>')
+      && (art.match(/<figure/g) || []).length === 1 && !r.body.includes('![img-') && !r.body.includes('cdn.example.invalid'), art);
+
+  withInlineImages = false;
 }
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);

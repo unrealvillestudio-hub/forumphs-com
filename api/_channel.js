@@ -11,7 +11,7 @@
 // Una marca nueva entra sembrando una fila en `intel.brand_publish_channels` y
 // desplegando su propio sitio con su `BRAND_ID`. Cero código tocado.
 
-import { stripMarks } from './_inline.js';
+import { stripMarks, inlineImagesOf } from './_inline.js';
 
 const CHANNEL_SCHEMA = 'intel';
 const CHANNEL_TABLE = 'brand_publish_channels';
@@ -540,6 +540,9 @@ function normalizePiece(row, topics = null) {
     body,
     excerpt: excerptOf(body),
     image_url: typeof image.url === 'string' && image.url.trim() ? image.url.trim() : null,
+    // Imágenes dentro del cuerpo (F2): sólo las pintables —`ok`, url https, `n` del
+    // contrato—. Las demás no llegan al renderizador y su marca `![img-N]` no pinta nada.
+    inline_images: inlineImagesOf(assets.inline_images),
     theme_key: topic?.theme_key ?? null,
     public_label: topic?.public_label ?? null,
     published_at: stamped,
