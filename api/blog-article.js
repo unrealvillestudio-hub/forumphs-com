@@ -98,7 +98,7 @@ export default async function handler(req, res) {
   <h2>Siga leyendo</h2>
   <p class="why">Del mismo tema, o lo más reciente del canal.</p>
   <ul>
-${relatedShown.map((p) => `    <li><a href="${escapeHtml(`${BLOG_PATH}/${p.slug}`)}">${escapeHtml(p.title)}</a></li>`).join('\n')}
+${relatedShown.map((p) => `    <li><a class="rel" href="${escapeHtml(`${BLOG_PATH}/${p.slug}`)}">${p.image_url ? `<span class="thumb"><img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" decoding="async"></span>` : ''}<span class="t">${escapeHtml(p.title)}</span></a></li>`).join('\n')}
   </ul>
 </section>`
       : `<section class="related">
