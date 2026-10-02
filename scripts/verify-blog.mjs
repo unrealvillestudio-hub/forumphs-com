@@ -508,5 +508,33 @@ check('el idioma sale del canal de cada una', catalogoA.includes('<html lang="es
 check('el rótulo del listado sale del canal, no del repo', catalogoB.includes('>Journal</div>') && catalogoA.includes('>Artículos</div>'));
 check('el nombre del sitio sale del canal', catalogoB.includes('Another Brand') && !catalogoB.includes('Sitio de Prueba'));
 
+console.log('\n── 21-bis · La negrita del generador se pinta; un asterisco suelto es texto ──');
+// El generador marca con `**texto**` la frase que abre o remata una sección. Antes de
+// esta sección el renderizador la publicaba con los asteriscos a la vista; el publicador
+// de blogs por API ya la traducía. Las dos puntas tienen que publicar lo mismo.
+{
+  const { paragraphs } = await import('../api/_render.js');
+  const { excerptOf } = await import('../api/_channel.js');
+
+  const html = paragraphs('Intro.\n\n**Here is the mechanism.** And the rest.\n\nTwo **bold** and **more** words.');
+  check('`**texto**` se publica como <strong>', html.includes('<strong>Here is the mechanism.</strong> And the rest.'), html);
+  check('varias negritas en un párrafo, cada una por separado',
+    html.includes('Two <strong>bold</strong> and <strong>more</strong> words.'), html);
+  check('ningún `**` queda a la vista', !html.includes('**'), html);
+
+  const sueltos = paragraphs('Price 5 * 3 and a note*. Also ** alone and ** spaced **.');
+  check('un asterisco suelto es texto, no se toca',
+    sueltos.includes('5 * 3') && sueltos.includes('note*.') && !sueltos.includes('<strong>'), sueltos);
+
+  const inerte = paragraphs('**<img src=x onerror=alert(1)>** done');
+  check('lo que va dentro de la negrita sigue escapado',
+    inerte.includes('<strong>&lt;img src=x onerror=alert(1)&gt;</strong>') && !inerte.includes('<img'), inerte);
+
+  const ex = excerptOf('**Here is the mechanism.** It matters that you understand it.');
+  check('el extracto (meta description, listado) no lleva asteriscos',
+    ex === 'Here is the mechanism. It matters that you understand it.', ex);
+  check('el extracto conserva un asterisco suelto', excerptOf('Rated 4* by readers.') === 'Rated 4* by readers.');
+}
+
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);
