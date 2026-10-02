@@ -190,7 +190,7 @@ check('canonical del artículo', res.body.includes(`<link rel="canonical" href="
 check('og:image desde assets.image.url', res.body.includes('og:image" content="https://cdn.example.invalid/a.png"'));
 check('datePublished desde assets.publication', res.body.includes('"datePublished":"2026-08-22T00:00:00.000Z"'));
 check('bloque de enlace interno (HR-FPHS-08)', res.body.includes('Siga leyendo'));
-check('related_count=2 respetado', (res.body.match(/<li><a href="\/blog\//g) || []).length === 2, (res.body.match(/<li><a href="\/blog\//g)||[]).length);
+check('related_count=2 respetado', (res.body.match(/<li><a class="rel" href="\/blog\//g) || []).length === 2, (res.body.match(/<li><a class="rel" href="\/blog\//g)||[]).length);
 check('hermana del mismo genoma primero', res.body.indexOf('Hermana del mismo genoma') < res.body.indexOf('Otro genoma'));
 check('nunca callejón sin salida', res.body.includes('Todos los artículos'));
 
@@ -534,6 +534,44 @@ console.log('\n── 21-bis · La negrita del generador se pinta; un asterisco 
   check('el extracto (meta description, listado) no lleva asteriscos',
     ex === 'Here is the mechanism. It matters that you understand it.', ex);
   check('el extracto conserva un asterisco suelto', excerptOf('Rated 4* by readers.') === 'Rated 4* by readers.');
+}
+
+console.log('\n── 24 · Formato editorial (F1): ## subtítulo, > cita, entradilla, cierre ──');
+{
+  const { paragraphs } = await import('../api/_render.js');
+  const { excerptOf } = await import('../api/_channel.js');
+  const body = [
+    'First paragraph with **bold**.',
+    '## The **mechanism** <script>x</script>',
+    'Section text. A # in a sentence and a > sign stay as text.',
+    '> One line quote\n> with **heat** inside',
+    '### Second heading',
+    'Last body paragraph.',
+    '— Lucien Sael · Builder, Thinker, Operator',
+  ].join('\n\n');
+  const html = paragraphs(body);
+  check('el primer párrafo es la entradilla', html.startsWith('<p class="lede">First paragraph with <strong>bold</strong>.</p>'), html.slice(0, 90));
+  check('## abre una sección numerada con <h2>', html.includes('<div class="sec"><span class="idx" aria-hidden="true">§ 01</span><h2>'));
+  check('### también es subtítulo, y la numeración sigue', html.includes('§ 02</span><h2>Second heading</h2>'));
+  check('el subtítulo va escapado y sin **', html.includes('<h2>The mechanism &lt;script&gt;x&lt;/script&gt;</h2>'), html);
+  check('> es una cita destacada, con sus líneas y su negrita', html.includes('<blockquote class="pull"><p>One line quote<br>with <strong>heat</strong> inside</p></blockquote>'), html);
+  check('# y > dentro de una frase son texto', html.includes('A # in a sentence and a &gt; sign stay as text.'));
+  check('el cierre con raya se compone aparte', html.includes('<p class="closer">— Lucien Sael · Builder, Thinker, Operator</p>'));
+  check('ninguna marca a la vista', !/(^|>)\s*#{1,3}\s|\*\*|>\s*&gt;/.test(html), html);
+  check('el extracto no lleva marcas', excerptOf('## Heading\n\n> Quote line\n\nAnd **text**.') === 'Heading Quote line And text.', excerptOf('## Heading\n\n> Quote line\n\nAnd **text**.'));
+  check('un cuerpo sin marcas se ve como antes, con entradilla', paragraphs('One.\n\nTwo.') === '<p class="lede">One.</p>\n<p>Two.</p>', paragraphs('One.\n\nTwo.'));
+  check('un cierre con raya que NO es el último párrafo es un párrafo normal', !paragraphs('A.\n\n— not last\n\nB.').includes('closer'));
+}
+
+console.log('\n── 25 · «Sigue leyendo» lleva la imagen de cada artículo ──');
+{
+  scenario = 'happy';
+  let r = mockRes(); await blogIndex(mockReq(), r);
+  const slug = /href="\/blog\/([^"]+)"/.exec(r.body)[1];
+  r = mockRes(); await blogArticle(mockReq({ slug }), r);
+  const rel = r.body.slice(r.body.indexOf('<section class="related">'));
+  check('tarjeta relacionada con imagen cuando la pieza la tiene', /<a class="rel" href="\/blog\/[^"]+"><span class="thumb"><img src="https:\/\/cdn\.example\.invalid\/c\.png"/.test(rel), rel.slice(0, 400));
+  check('sin imagen, la tarjeta no reserva hueco', /<a class="rel" href="\/blog\/[^"]+"><span class="t">/.test(rel), rel.slice(0, 400));
 }
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);

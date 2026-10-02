@@ -11,7 +11,7 @@
 // Una marca nueva entra sembrando una fila en `intel.brand_publish_channels` y
 // desplegando su propio sitio con su `BRAND_ID`. Cero código tocado.
 
-import { stripEmphasis } from './_inline.js';
+import { stripMarks } from './_inline.js';
 
 const CHANNEL_SCHEMA = 'intel';
 const CHANNEL_TABLE = 'brand_publish_channels';
@@ -672,7 +672,7 @@ function toIso(v) {
 
 export function excerptOf(body, max = 155) {
   // El extracto es texto plano (meta description, listado): la negrita se quita, no se pinta.
-  const flat = stripEmphasis(body).replace(/\s+/g, ' ').trim();
+  const flat = stripMarks(body).replace(/\s+/g, ' ').trim();
   if (flat.length <= max) return flat;
   const cut = flat.slice(0, max);
   const lastSpace = cut.lastIndexOf(' ');

@@ -8,7 +8,7 @@
 // del sitio y la URL canónica se construyen desde `config` del canal; los tokens de
 // color se declaran una sola vez y coinciden con los de `index.html`.
 
-import { emphasisToHtml } from './_inline.js';
+import { emphasisToHtml, stripEmphasis, blocksOf } from './_inline.js';
 
 export function escapeHtml(s) {
   return String(s ?? '')
@@ -51,6 +51,7 @@ const STYLE = `
   --font-display:'Cinzel',Georgia,serif;--font-serif:'EB Garamond',Georgia,serif;--font-sans:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --font-editorial:'Cormorant Garamond',Georgia,serif;
   --ease:cubic-bezier(0,0,.2,1);
+  --a1:var(--am-l);--a1f:var(--amethyst);--a2:var(--terra);--a2s:rgba(196,98,45,0.26);--a3:#5FB49C;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -104,7 +105,6 @@ h1{font-family:var(--font-serif);font-size:clamp(30px,8vw,48px);font-weight:500;
 .cover img{display:block;width:100%;height:auto}
 article{padding:32px 0 8px}
 article p{font-family:var(--font-serif);font-size:18px;line-height:1.75;color:rgba(240,237,232,.9);margin-bottom:22px}
-article p:first-child::first-letter{float:left;font-size:3.4em;line-height:.9;padding:6px 10px 0 0;color:var(--terra);font-weight:500}
 article p:last-child{margin-bottom:0}
 /* min() evita que la columna mínima supere el ancho de un teléfono de 320 px: con 292 px
    fijos, la grilla desbordaba la página en horizontal. */
@@ -150,6 +150,32 @@ footer .wrap{display:flex;flex-direction:column;gap:12px}
 footer .links{display:flex;flex-wrap:wrap;gap:0 20px}
 footer a{display:inline-flex;align-items:center;min-height:44px;color:rgba(240,237,232,.9);text-decoration:none}
 footer a:hover{color:#fff}
+/* ── Formato editorial (F1, 2026-10-02) — el de la maqueta v4 aprobada ──
+   Acentos del BP: Amatista Tint escribe (--a1; Amatista rellena, §18.2), Terra resalta la
+   negrita y numera las secciones (--a2), Jade es el punto vivo y el filete (--a3, 7,68:1). */
+.eyebrow::before{background:var(--a3)}
+article p.lede{font-size:20px;line-height:1.6;color:var(--chalk)}
+article strong{color:var(--chalk);font-weight:600;background:linear-gradient(transparent 62%,var(--a2s) 62%) no-repeat;padding:0 .08em}
+article .sec{margin:2.4em 0 .9em;display:grid;gap:10px}
+article .sec .idx{display:flex;align-items:center;gap:12px;font-family:var(--font-display);font-size:11px;font-weight:400;letter-spacing:.2em;text-transform:uppercase;color:var(--a2)}
+article .sec .idx::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--a2),var(--a1f) 40%,transparent);opacity:.55}
+article h2{font-family:var(--font-serif);font-weight:500;font-size:clamp(26px,5.2vw,34px);line-height:1.15;color:var(--chalk);text-wrap:balance}
+article blockquote.pull{position:relative;margin:2.2em 0;padding:6px 0 6px 26px}
+article blockquote.pull::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px;background:linear-gradient(180deg,var(--a1f),var(--a2))}
+article blockquote.pull p{font-family:var(--font-editorial);font-style:italic;font-weight:400;font-size:clamp(26px,3.6vw,36px);line-height:1.2;color:var(--chalk);margin:0}
+article blockquote.pull strong{background:none;color:var(--a1);font-weight:500;padding:0}
+article p.closer{font-style:italic;color:var(--chalk-72);margin-top:1.6em}
+/* «Sigue leyendo» con la imagen de cada artículo (Sam, 2026-10-02). Sin imagen, la tarjeta
+   se apoya en el título y no reserva hueco. */
+.related ul{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.related ul>li{min-width:0;border-top:0}
+.related a.rel{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;height:100%;min-height:0;padding:0;border:1px solid var(--chalk-12);border-radius:6px;overflow:hidden;background:var(--graphite);transition:border-color .18s var(--ease),transform .18s var(--ease)}
+.related li a.rel::after{content:none}
+.related a.rel:hover{border-color:var(--a3);transform:translateY(-2px)}
+.related a.rel .thumb{display:block;aspect-ratio:16/9;overflow:hidden;background:var(--carbon)}
+.related a.rel .thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.related a.rel .t{display:block;padding:14px 16px 16px;font-family:var(--font-serif);font-size:18px;line-height:1.35;color:var(--chalk-72)}
+.related a.rel:hover .t{color:var(--chalk)}
 @media(min-width:720px){
   .wrap{padding:0 28px}
   .topbar{position:sticky;top:0}
@@ -379,12 +405,27 @@ ${body}
 // La negrita (`**texto**`) se traduce DESPUÉS de escapar, sobre el texto ya inerte: ver
 // `_inline.js`.
 export function paragraphs(body) {
-  const parts = String(body || '')
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  if (!parts.length) return '';
-  return parts.map((p) => `<p>${emphasisToHtml(escapeHtml(p)).replace(/\n/g, '<br>')}</p>`).join('\n');
+  const blocks = blocksOf(body);
+  if (!blocks.length) return '';
+  // Formato editorial (F1, 2026-10-02): el primer párrafo es la entradilla; cada `##` abre
+  // una sección numerada; `>` es la cita destacada. El último párrafo que empieza con raya
+  // (—) es el cierre de firma de la marca y se compone aparte.
+  const inline = (t) => emphasisToHtml(escapeHtml(t)).replace(/\n/g, '<br>');
+  const lastP = blocks.map((b) => b.t).lastIndexOf('p');
+  let firstP = true;
+  let sec = 0;
+  return blocks.map((b, i) => {
+    if (b.t === 'h') {
+      sec += 1;
+      // El subtítulo no lleva negrita: ya es un titular. Se quitan los `**` sin pintarlos.
+      return `<div class="sec"><span class="idx" aria-hidden="true">§ ${String(sec).padStart(2, '0')}</span><h2>${escapeHtml(stripEmphasis(b.text))}</h2></div>`;
+    }
+    if (b.t === 'quote') return `<blockquote class="pull"><p>${inline(b.text)}</p></blockquote>`;
+    let cls = '';
+    if (firstP) { cls = ' class="lede"'; firstP = false; }
+    else if (i === lastP && /^[—–]\s/.test(b.text)) cls = ' class="closer"';
+    return `<p${cls}>${inline(b.text)}</p>`;
+  }).join('\n');
 }
 
 export function formatStamp(iso, config) {
