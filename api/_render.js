@@ -121,8 +121,10 @@ article p:last-child{margin-bottom:0}
    que mide su contenido. Estirarlas a la altura de la fila abriría, dentro de la tarjeta
    SIN imagen, exactamente el hueco que este bloque prohíbe — el alto lo impondría la
    imagen de la vecina. Las columnas siguen alineadas; solo el borde inferior varía. */
-.card .shot{margin-top:16px;border-radius:4px;overflow:hidden;aspect-ratio:16/9}
-.card .shot img{display:block;width:100%;height:100%;object-fit:cover}
+.card .shot{margin-top:16px;border-radius:4px;overflow:hidden}
+/* Las imágenes del carril son piezas compuestas con el titular en la franja inferior: se muestran
+   enteras, a su propia proporción. Un recorte 16:9 cortaba el texto (Sam, 2026-10-02). */
+.card .shot img{display:block;width:100%;height:auto}
 .related{margin-top:48px;padding-top:28px;border-top:2px solid var(--amethyst)}
 .related h2{font-family:var(--font-display);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--terra);margin-bottom:6px}
 .related .why{font-size:14px;color:var(--chalk-42);margin-bottom:10px}
@@ -172,8 +174,8 @@ article p.closer{font-style:italic;color:var(--chalk-72);margin-top:1.6em}
 .related a.rel{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0;height:100%;min-height:0;padding:0;border:1px solid var(--chalk-12);border-radius:6px;overflow:hidden;background:var(--graphite);transition:border-color .18s var(--ease),transform .18s var(--ease)}
 .related li a.rel::after{content:none}
 .related a.rel:hover{border-color:var(--a3);transform:translateY(-2px)}
-.related a.rel .thumb{display:block;aspect-ratio:16/9;overflow:hidden;background:var(--carbon)}
-.related a.rel .thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.related a.rel .thumb{display:block;overflow:hidden;background:var(--carbon)}
+.related a.rel .thumb img{display:block;width:100%;height:auto}
 .related a.rel .t{display:block;padding:14px 16px 16px;font-family:var(--font-serif);font-size:18px;line-height:1.35;color:var(--chalk-72)}
 .related a.rel:hover .t{color:var(--chalk)}
 @media(min-width:720px){
