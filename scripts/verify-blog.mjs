@@ -572,6 +572,9 @@ console.log('\n── 25 · «Sigue leyendo» lleva la imagen de cada artículo 
   const rel = r.body.slice(r.body.indexOf('<section class="related">'));
   check('tarjeta relacionada con imagen cuando la pieza la tiene', /<a class="rel" href="\/blog\/[^"]+"><span class="thumb"><img src="https:\/\/cdn\.example\.invalid\/c\.png"/.test(rel), rel.slice(0, 400));
   check('sin imagen, la tarjeta no reserva hueco', /<a class="rel" href="\/blog\/[^"]+"><span class="t">/.test(rel), rel.slice(0, 400));
+  // Las imágenes del carril llevan el titular en la franja inferior: ningún marco las recorta.
+  const marcos = (r.body.match(/\.(?:card \.shot|related a\.rel \.thumb)(?: img)?\{[^}]*\}/g) || []).join(' ');
+  check('las miniaturas se ven enteras: sin aspect-ratio ni object-fit:cover', marcos.length > 0 && !/aspect-ratio|object-fit:cover/.test(marcos), marcos);
 }
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
