@@ -8,6 +8,8 @@
 // del sitio y la URL canónica se construyen desde `config` del canal; los tokens de
 // color se declaran una sola vez y coinciden con los de `index.html`.
 
+import { emphasisToHtml } from './_inline.js';
+
 export function escapeHtml(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
@@ -374,13 +376,15 @@ ${body}
 }
 
 // Cuerpo de texto plano → párrafos. El texto va escapado: nunca se inyecta HTML de la DB.
+// La negrita (`**texto**`) se traduce DESPUÉS de escapar, sobre el texto ya inerte: ver
+// `_inline.js`.
 export function paragraphs(body) {
   const parts = String(body || '')
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
   if (!parts.length) return '';
-  return parts.map((p) => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('\n');
+  return parts.map((p) => `<p>${emphasisToHtml(escapeHtml(p)).replace(/\n/g, '<br>')}</p>`).join('\n');
 }
 
 export function formatStamp(iso, config) {
