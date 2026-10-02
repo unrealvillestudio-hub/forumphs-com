@@ -72,6 +72,7 @@
   --am-d:     #3A1F4A;   /* Amatista Dark · fondos premium, pie */
   --am-l:     #EAD9F5;   /* Amatista Light · acento legible sobre oscuro (14.2:1) */
   --terra:    #C4622D;   /* Terra · acento, «PHs», segunda parte del slogan, reglas */
+  --jade:     #5FB49C;   /* Jade · tercer acento (BP 2026-10-02): punto vivo y filete del eyebrow. 7.68:1 sobre carbon-d. Cerca del 1 % de la superficie, nunca un relleno */
   --carbon:   #1C2233;   /* Carbon · superficies */
   --carbon-d: #0E1018;   /* Carbon Dark · fondo principal */
   --dust:     #B8B0A8;   /* texto secundario (8.9:1 sobre carbon-d) */
@@ -175,9 +176,9 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
   letter-spacing: 0.22em; text-transform: uppercase; color: var(--terra);
   margin-bottom: 20px;
 }
-.eyebrow::before { content: ''; width: 28px; height: 1px; background: currentColor; opacity: 0.85; }
+.eyebrow::before { content: ''; width: 28px; height: 1px; background: var(--jade); opacity: 0.85; }
 .eyebrow.center { justify-content: center; }
-.eyebrow.center::after { content: ''; width: 28px; height: 1px; background: currentColor; opacity: 0.85; }
+.eyebrow.center::after { content: ''; width: 28px; height: 1px; background: var(--jade); opacity: 0.85; }
 .h2 {
   font-family: var(--font-display); font-weight: 500;
   font-size: clamp(1.95rem, 6.4vw, 3.1rem); line-height: 1.16; letter-spacing: -0.01em;
@@ -398,7 +399,7 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
   font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--am-l); background: var(--am-tint); border: 1px solid rgba(234,217,245,0.18); border-radius: 18px;
 }
-.dot-breathe { width: 6px; height: 6px; border-radius: 50%; background: var(--terra); animation: dot-breathe 2.5s ease-in-out infinite; }
+.dot-breathe { width: 6px; height: 6px; border-radius: 50%; background: var(--jade); box-shadow: 0 0 0 3px rgba(95,180,156,0.18); animation: dot-breathe 2.5s ease-in-out infinite; }
 @keyframes dot-breathe { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.65); } }
 .hero-title {
   font-family: var(--font-display); font-weight: 500;
