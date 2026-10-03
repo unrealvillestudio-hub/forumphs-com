@@ -435,7 +435,10 @@ export function paragraphs(body, inlineImages = []) {
       const img = painted.has(b.n) ? null : images.get(b.n);
       if (!img) return '';
       painted.add(b.n);
-      return `<figure class="inline-figure"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt)}" loading="lazy" decoding="async"></figure>`;
+      // Paquete de alt (2026-10-03): con ancho y alto reales el navegador reserva el sitio y
+      // el texto no salta al cargar. Sin ellos, la figura sale como antes.
+      const dims = img.width && img.height ? ` width="${img.width}" height="${img.height}"` : '';
+      return `<figure class="inline-figure"><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt)}"${dims} loading="lazy" decoding="async"></figure>`;
     }
     if (b.t === 'h') {
       sec += 1;

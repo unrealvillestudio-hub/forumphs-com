@@ -692,6 +692,23 @@ console.log('\n── 26 · Imágenes dentro del artículo (F2): `![img-N]` pint
       && art.includes('<figure class="inline-figure"><img src="https://media.otra-marca.example.invalid/f2/2.webp" alt="Fishing boats moored at dawn" loading="lazy" decoding="async"></figure>')
       && (art.match(/<figure/g) || []).length === 1 && !r.body.includes('![img-') && !r.body.includes('cdn.example.invalid'), art);
 
+
+  // ── 26-bis · Paquete de alt (2026-10-03): ancho y alto reales en la figura ──
+  console.log('\n── 26-bis · Paquete de alt: la figura lleva width y height reales cuando el dato los trae ──');
+  const conDims = (n, w, h, extra = {}) => ok(n, { width: w, height: h, url: `https://cdn.example.invalid/escena-${n}.webp`, ...extra });
+  const pintada = paragraphs('A.\n\n![img-1]\n\nB.', [conDims(1, 1408, 768)]);
+  check('con width y height válidos, el <img> los lleva (el navegador reserva el sitio)',
+    pintada.includes('<img src="https://cdn.example.invalid/escena-1.webp" alt="alt 1" width="1408" height="768" loading="lazy" decoding="async">'), pintada);
+  check('sin medidas, la figura sale EXACTAMENTE como antes (lector tolerante)',
+    paragraphs('A.\n\n![img-1]\n\nB.', [ok(1)]).includes('<img src="https://cdn.example.invalid/u1.png" alt="alt 1" loading="lazy" decoding="async">'));
+  const raras = [[0, 768], [1408, null], ['1408', '768x'], [1408.5, 768], [-1, 768], [99999, 768], [1408, undefined]];
+  check('medida incompleta, no entera, negativa o absurda → ninguna de las dos (nunca una sola)',
+    raras.every(([w, h]) => { const html = paragraphs('A.\n\n![img-1]\n\nB.', [ok(1, { width: w, height: h })]); return !/width=|height=/.test(html) && html.includes('<figure'); }));
+  check('inlineImagesOf conserva las medidas y sigue siendo idempotente',
+    JSON.stringify(inlineImagesOf(inlineImagesOf([conDims(2, 800, 600)]))) === JSON.stringify([{ n: 2, status: 'ok', url: 'https://cdn.example.invalid/escena-2.webp', alt: 'alt 2', width: 800, height: 600 }]));
+  check('la imagen WebP se pinta igual que la PNG (el renderizador no mira la extensión)',
+    paragraphs('A.\n\n![img-3]\n\nB.', [conDims(3, 10, 20)]).includes('escena-3.webp" alt="alt 3" width="10" height="20"'));
+
   withInlineImages = false;
 }
 
