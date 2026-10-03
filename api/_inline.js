@@ -82,9 +82,26 @@ export function inlineImagesOf(raw) {
     if (out.some((x) => x.n === n)) continue;
     // `status` se conserva: la salida vuelve a pasar este filtro tal cual —el renderizador
     // filtra otra vez lo que recibe— y la función tiene que ser idempotente.
-    out.push({ n, status: 'ok', url, alt: typeof e.alt === 'string' ? e.alt.trim() : '' });
+    const dims = inlineImageDims(e);
+    out.push({ n, status: 'ok', url, alt: typeof e.alt === 'string' ? e.alt.trim() : '', ...(dims || {}) });
   }
   return out;
+}
+
+// ── Paquete de alt (Sam, 2026-10-03): ancho y alto reales de la imagen ──────────────────
+//
+// El productor guarda `width` y `height` de cada imagen dentro del artículo para que el
+// navegador reserve su sitio antes de descargarla (sin saltos de diseño). Son DATO opcional:
+// una imagen anterior al paquete no los trae y se pinta exactamente como antes. Sólo pasan
+// los dos juntos, enteros, positivos y dentro de un tope de cordura; cualquier otra cosa se
+// ignora entera —un alto sin ancho no reserva nada y sí deformaría la figura—.
+export const INLINE_IMAGE_DIM_MAX = 20000;
+
+/** `{ width, height }` si la entrada trae las dos medidas válidas; si no, `null`. */
+export function inlineImageDims(e) {
+  const w = Number(e && e.width), h = Number(e && e.height);
+  const valida = (v) => Number.isInteger(v) && v > 0 && v <= INLINE_IMAGE_DIM_MAX;
+  return valida(w) && valida(h) ? { width: w, height: h } : null;
 }
 
 /**
