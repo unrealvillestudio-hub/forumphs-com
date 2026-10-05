@@ -20,6 +20,19 @@ function cell(value) {
   return value ? escapeHtml(value) : '—';
 }
 
+// Salida de error de un envío. El visitante vuelve a la portada con `?enviado=0` y ve un
+// mensaje legible en la zona del formulario, nunca JSON crudo. El detalle se queda sólo en
+// el log del servidor, con un código estable (`[contact] CONTACT_…`) para poder buscarlo:
+// una redirección no deja rastro en ningún otro sitio.
+//
+// No se distingue por `Accept`: el camino de éxito nunca lo hizo (redirige siempre) y el
+// único llamador del endpoint es el formulario nativo de la portada.
+function failed(res, code, detail) {
+  if (detail === undefined) console.error(`[contact] ${code}`);
+  else console.error(`[contact] ${code}`, detail);
+  return res.redirect(303, '/?enviado=0');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -34,11 +47,16 @@ export default async function handler(req, res) {
   const mensaje = field(body, 'mensaje');
 
   if (!nombre || !correo) {
-    return res.status(400).json({ error: 'Nombre y correo son requeridos' });
+    return failed(res, 'CONTACT_MISSING_FIELDS');
   }
   // El correo se usa en `reply_to` y en un `mailto:`: si no tiene forma de correo, no se envía.
   if (!EMAIL_RE.test(correo)) {
-    return res.status(400).json({ error: 'El correo no tiene un formato válido' });
+    return failed(res, 'CONTACT_BAD_EMAIL');
+  }
+
+  // Sin la clave no se llama a Resend con `Bearer undefined`: se falla aquí, con su código.
+  if (!process.env.RESEND_API_KEY) {
+    return failed(res, 'CONTACT_NO_API_KEY');
   }
 
   // El asunto es una cabecera: sin saltos de línea, aunque el nombre los traiga.
@@ -81,12 +99,10 @@ export default async function handler(req, res) {
     if (response.ok) {
       return res.redirect(303, '/?enviado=1');
     } else {
-      const err = await response.json();
-      console.error('Resend error:', err);
-      return res.status(500).json({ error: 'Error al enviar. Intente de nuevo.' });
+      const err = await response.json().catch(() => null);
+      return failed(res, 'CONTACT_RESEND_ERROR', { status: response.status, err });
     }
   } catch (e) {
-    console.error('Handler error:', e);
-    return res.status(500).json({ error: 'Error de servidor.' });
+    return failed(res, 'CONTACT_HANDLER_ERROR', e);
   }
 }

@@ -693,6 +693,20 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 @keyframes snap-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
 .form-sent p:first-of-type { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; }
 .form-sent p + p { font-size: 14px; color: var(--text-3); line-height: 1.7; }
+/* Envío fallido (api/contact.js redirige a /?enviado=0): mismo molde que la confirmación,
+   encima del formulario, que se queda para reintentar. Terra marca el aviso, no el error rojo. */
+.form-failed { padding: 8px 0 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+.form-failed .form-sent-icon { background: rgba(196,98,45,0.14); border-color: rgba(196,98,45,0.45); color: var(--terra); }
+.form-failed a { color: var(--am-l); text-decoration: underline; text-underline-offset: 3px; }
+/* Confirmación discreta al copiar la dirección de correo. La región existe siempre (vacía)
+   para que `aria-live` la anuncie; vacía no ocupa alto. */
+.copy-note { font-size: 13px; line-height: 1.5; color: var(--am-l); opacity: 0; transition: opacity var(--dur-normal) var(--ease-out); overflow-wrap: anywhere; }
+.copy-note.show { opacity: 1; }
+.contact-list .copy-note { margin-top: -10px; padding-left: 16px; }
+.contact-list .copy-note:not(:empty) { margin-top: -4px; }
+.drawer-foot .copy-note { margin-top: -10px; text-align: center; }
+.drawer-foot .copy-note:not(:empty) { margin-top: -6px; }
+.site-footer .copy-note { margin-top: 4px; }
 
 /* ══ PIE — fondo Amatista Dark y borde de acento (BP · ui-ux-layer §5) ═════════════ */
 .site-footer { position: relative; z-index: 1; background: var(--am-d); border-top: 2px solid var(--am); padding: 52px 0 0; }
@@ -888,7 +902,8 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <span>Escribir por WhatsApp</span>
     </a>
     <a class="btn btn-primary btn-block" href="#contacto"><span>Solicitar diagnóstico gratuito</span> <span class="btn-arrow" aria-hidden="true">→</span></a>
-    <p class="drawer-contact"><a href="mailto:contacto@forumphs.com">contacto@forumphs.com</a> · +507 6722-7355</p>
+    <p class="drawer-contact"><a href="mailto:contacto@forumphs.com?subject=Contacto%20desde%20forumphs.com" data-copy-note="copy-note-drawer">contacto@forumphs.com</a> · +507 6722-7355</p>
+    <p class="copy-note" id="copy-note-drawer" aria-live="polite"></p>
   </div>
 </div>
 
@@ -1308,11 +1323,12 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
           <span><span class="contact-label">WhatsApp</span><span class="contact-val">+507 6722-7355</span><span class="contact-note">Respuesta directa del equipo</span></span>
           <span class="contact-go" aria-hidden="true">→</span>
         </a>
-        <a class="contact-item" href="mailto:contacto@forumphs.com">
+        <a class="contact-item" href="mailto:contacto@forumphs.com?subject=Contacto%20desde%20forumphs.com" data-copy-note="copy-note-card">
           <span class="contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
           <span><span class="contact-label">Correo</span><span class="contact-val">contacto@forumphs.com</span></span>
           <span class="contact-go" aria-hidden="true">→</span>
         </a>
+        <p class="copy-note" id="copy-note-card" aria-live="polite"></p>
         <div class="contact-item">
           <span class="contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 13-8 13S4 15.25 4 10a8 8 0 0 1 8-8z"/></svg></span>
           <span><span class="contact-label">Ubicación</span><span class="contact-val">Ciudad de Panamá, Panamá</span></span>
@@ -1398,9 +1414,10 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
         <p class="footer-h">Contacto</p>
         <ul class="footer-links">
           <li><a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener">WhatsApp · +507 6722-7355</a></li>
-          <li><a href="mailto:contacto@forumphs.com">contacto@forumphs.com</a></li>
+          <li><a href="mailto:contacto@forumphs.com?subject=Contacto%20desde%20forumphs.com" data-copy-note="copy-note-footer">contacto@forumphs.com</a></li>
           <li><a href="#contacto">Diagnóstico gratuito</a></li>
         </ul>
+        <p class="copy-note" id="copy-note-footer" aria-live="polite"></p>
       </div>
     </div>
   </div>
@@ -1467,7 +1484,11 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
   function menuOpen() { return drawer.classList.contains('open'); }
   menuBtn.addEventListener('click', function () { setMenu(!menuOpen()); });
   // Un enlace del menú cierra el panel ANTES de navegar: si no, el ancla quedaría tapada.
-  drawer.addEventListener('click', function (e) { if (e.target.closest('a')) setMenu(false); });
+  // El de correo no navega la página: el panel sigue abierto para mostrar «Dirección copiada».
+  drawer.addEventListener('click', function (e) {
+    var a = e.target.closest('a');
+    if (a && !/^mailto:/i.test(a.getAttribute('href') || '')) setMenu(false);
+  });
   document.addEventListener('keydown', function (e) {
     if (!menuOpen()) return;
     if (e.key === 'Escape') { setMenu(false); return; }
@@ -1550,6 +1571,83 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
     history.replaceState({}, '', window.location.pathname + '#contacto');
     if (contact) contact.scrollIntoView();
   }
+
+  // ── Envío fallido (api/contact.js redirige a /?enviado=0) ──
+  // Mensaje legible encima del formulario, que se queda para reintentar. El detalle del
+  // fallo sólo está en el log del servidor (`[contact] CONTACT_…`).
+  if (/[?&]enviado=0\b/.test(window.location.search)) {
+    var failForm = document.getElementById('contact-form');
+    if (failForm) {
+      failForm.insertAdjacentHTML('beforebegin', '<div class="form-sent form-failed" role="alert"><div class="form-sent-icon" aria-hidden="true">!</div>'
+        + '<p>No pudimos enviar su solicitud.</p>'
+        + '<p>Inténtelo de nuevo o <a href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener">escríbanos por WhatsApp</a>.</p></div>');
+    }
+    history.replaceState({}, '', window.location.pathname + '#contacto');
+    // Al mensaje, no al inicio de la sección: en el teléfono el formulario queda bajo la lista
+    // de contacto y el aviso no se vería sin desplazarse. La página cambia de alto mientras
+    // cargan fuentes y recursos, así que se vuelve a alinear en `load` y con las fuentes,
+    // salvo que el visitante ya se haya movido por su cuenta.
+    var failMsg = document.querySelector('.form-failed');
+    if (failMsg) {
+      var userMoved = false;
+      var stopAlign = function () { userMoved = true; };
+      ['wheel', 'touchstart', 'keydown'].forEach(function (ev) { window.addEventListener(ev, stopAlign, { once: true, passive: true }); });
+      var alignFail = function () { if (!userMoved) failMsg.scrollIntoView({ block: 'center', behavior: 'instant' }); };
+      alignFail();
+      window.addEventListener('load', alignFail, { once: true });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(alignFail);
+    } else if (contact) contact.scrollIntoView();
+  }
+
+  // ── Correo: el enlace abre el cliente de correo y, además, copia la dirección ──
+  // No se impide la acción del `mailto:`: si hay cliente, se abre; si no lo hay, el visitante
+  // ya tiene la dirección copiada. La confirmación va a la región `aria-live` que nombra
+  // `data-copy-note` y se retira a los 2,5 s.
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacyCopy(text); });
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+  function legacyCopy(text) {
+    var active = document.activeElement;
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    document.body.removeChild(ta);
+    if (active && typeof active.focus === 'function') active.focus();
+    return ok;
+  }
+  var noteTimers = {};
+  function showCopyNote(note, text) {
+    clearTimeout(noteTimers[note.id]);
+    note.classList.remove('show');
+    note.textContent = '';
+    // Se vacía y se rellena en otro ciclo para que un segundo clic también se anuncie.
+    setTimeout(function () {
+      note.textContent = text;
+      note.classList.add('show');
+      noteTimers[note.id] = setTimeout(function () {
+        note.classList.remove('show');
+        noteTimers[note.id] = setTimeout(function () { note.textContent = ''; }, 300);
+      }, 2500);
+    }, 30);
+  }
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest ? e.target.closest('a[data-copy-note]') : null;
+    if (!link) return;
+    var note = document.getElementById(link.getAttribute('data-copy-note'));
+    var address = decodeURIComponent((link.getAttribute('href') || '').replace(/^mailto:/i, '').split('?')[0]);
+    if (!note || !address) return;
+    copyText(address).then(function (ok) {
+      if (ok) showCopyNote(note, 'Dirección copiada: ' + address);
+    });
+  });
 
   // ── Torre viva: genera las ventanas y enciende/apaga luces al azar ──
   var stage = document.getElementById('tower-stage');
