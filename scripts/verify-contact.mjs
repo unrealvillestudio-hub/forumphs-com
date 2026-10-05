@@ -21,7 +21,10 @@ globalThis.fetch = async (url, init) => {
     ? { ok: true, json: async () => ({ id: 'simulado' }) }
     : { ok: false, json: async () => ({ message: 'fallo simulado' }) };
 };
-console.error = () => {};
+// Se captura lo que el handler deja en el log: en un fallo, el visitante sólo ve la
+// redirección, y el log es la única vía para enterarse de qué pasó.
+let logged = [];
+console.error = (...args) => { logged.push(args.map(String).join(' ')); };
 
 function mockRes() {
   const r = { statusCode: 200, location: null, body: null };
@@ -32,6 +35,7 @@ function mockRes() {
 }
 async function post(body, method = 'POST') {
   sent = [];
+  logged = [];
   const res = mockRes();
   await handler({ method, body }, res);
   return { res, mail: sent[0]?.body ?? null };
@@ -70,17 +74,24 @@ check('teléfono escapado', !html.includes('<b>555</b>') && html.includes('&lt;b
 check('mensaje: sin imagen de rastreo ni enlace vivos', !html.includes('<img src="https://tracker') && !html.includes('<a href="https://x.example"'));
 check('el asunto no lleva HTML interpretado (es texto plano)', typeof mail?.subject === 'string');
 
-console.log('\n── 3 · Correo inválido: 400 y no se envía nada ──');
+// Un fallo del envío NO devuelve JSON al visitante: 303 a /?enviado=0, donde la portada
+// muestra un mensaje legible. El detalle va sólo al log, con un código estable.
+const FAILED = (r) => r.statusCode === 303 && r.location === '/?enviado=0' && r.body === null;
+
+console.log('\n── 3 · Correo inválido: 303 a /?enviado=0 y no se envía nada ──');
 for (const bad of ['sin-arroba', 'a@b', 'x" onmouseover="alert(1)@e.com', 'ana@example.com\nBcc: otro@example.com', 'javascript:alert(1)@x.com']) {
   ({ res, mail } = await post({ ...OK, correo: bad }));
-  check(`«${bad.replace(/\n/g, '\\n')}» → 400 sin envío`, res.statusCode === 400 && mail === null, `${res.statusCode}`);
+  check(`«${bad.replace(/\n/g, '\\n')}» → 303 /?enviado=0 sin envío`, FAILED(res) && mail === null, `${res.statusCode} ${res.location}`);
 }
+check('el log lleva el código CONTACT_BAD_EMAIL', logged.some((l) => l.includes('[contact] CONTACT_BAD_EMAIL')), JSON.stringify(logged));
+check('el log no lleva el correo que escribió el visitante', !logged.some((l) => l.includes('javascript:alert')));
 
 console.log('\n── 4 · Requeridos, método y cabeceras ──');
 ({ res, mail } = await post({ ...OK, nombre: '   ' }));
-check('nombre vacío → 400 sin envío', res.statusCode === 400 && mail === null);
+check('nombre vacío → 303 /?enviado=0 sin envío', FAILED(res) && mail === null, `${res.statusCode} ${res.location}`);
+check('el log lleva el código CONTACT_MISSING_FIELDS', logged.some((l) => l.includes('[contact] CONTACT_MISSING_FIELDS')));
 ({ res, mail } = await post({ ...OK, correo: '' }));
-check('correo vacío → 400 sin envío', res.statusCode === 400 && mail === null);
+check('correo vacío → 303 /?enviado=0 sin envío', FAILED(res) && mail === null, `${res.statusCode} ${res.location}`);
 ({ res } = await post(OK, 'GET'));
 check('GET → 405', res.statusCode === 405);
 ({ res, mail } = await post({ ...OK, nombre: 'Ana\r\nBcc: otro@example.com' }));
@@ -93,8 +104,25 @@ check('un campo que no es cadena no tumba el handler', res.statusCode === 303, r
 console.log('\n── 5 · Fallo de Resend ──');
 resendOk = false;
 ({ res } = await post(OK));
-check('Resend falla → 500 legible', res.statusCode === 500 && typeof res.body?.error === 'string', res.statusCode);
+check('Resend falla → 303 /?enviado=0, sin JSON', FAILED(res), `${res.statusCode} ${res.location} ${JSON.stringify(res.body)}`);
+check('el detalle de Resend queda en el log (CONTACT_RESEND_ERROR)', logged.some((l) => l.includes('[contact] CONTACT_RESEND_ERROR')), JSON.stringify(logged));
 resendOk = true;
+
+console.log('\n── 6 · Resend lanza (red caída) ──');
+const realFetch = globalThis.fetch;
+globalThis.fetch = async () => { throw new Error('red simulada caída'); };
+({ res } = await post(OK));
+check('excepción → 303 /?enviado=0, sin JSON', FAILED(res), `${res.statusCode} ${res.location}`);
+check('el log lleva CONTACT_HANDLER_ERROR', logged.some((l) => l.includes('[contact] CONTACT_HANDLER_ERROR')));
+globalThis.fetch = realFetch;
+
+console.log('\n── 7 · Sin RESEND_API_KEY ──');
+const savedKey = process.env.RESEND_API_KEY;
+delete process.env.RESEND_API_KEY;
+({ res, mail } = await post(OK));
+check('sin clave → 303 /?enviado=0 y no se llama a Resend', FAILED(res) && mail === null, `${res.statusCode} ${res.location}`);
+check('el log lleva CONTACT_NO_API_KEY', logged.some((l) => l.includes('[contact] CONTACT_NO_API_KEY')));
+process.env.RESEND_API_KEY = savedKey;
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);
