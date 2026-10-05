@@ -662,10 +662,6 @@ a.contact-item.wa:hover { border-color: rgba(37,211,102,0.55); }
 .contact-note { display: block; font-size: 13px; color: var(--text-3); margin-top: 2px; }
 .contact-go { margin-left: auto; color: var(--text-3); font-size: 18px; transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast); }
 a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l); }
-.contact-rep { margin-top: 18px; padding: 18px 20px; border-left: 3px solid var(--terra); background: rgba(58,31,74,0.35); border-radius: 0 var(--radius) var(--radius) 0; }
-.contact-rep-label { display: block; font-family: var(--font-utility); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--am-l); margin-bottom: 6px; }
-.contact-rep-name { font-family: var(--font-display); font-size: 1.35rem; color: var(--text); }
-.contact-rep-title { font-size: 13px; color: var(--text-3); margin-top: 2px; }
 
 .form-card { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 26px 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.35); }
 .form-kicker { display: block; font-family: var(--font-utility); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--terra); margin-bottom: 8px; }
@@ -703,6 +699,10 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 .footer-grid { display: grid; gap: 32px; }
 .footer-slogan { margin-top: 14px; font-family: var(--font-display); font-size: 1.1rem; font-style: italic; color: rgba(240,237,232,0.72); line-height: 1.5; max-width: 22rem; }
 .footer-slogan span { color: #F2A77A; }
+/* Representante legal: dato secundario del pie, sin prioridad visual (Sam, 2026-10-05).
+   Sin tarjeta, sin borde y sin acento: el mismo tono apagado que el texto secundario del pie. */
+.footer-rep { margin-top: 20px; max-width: 22rem; font-size: 12px; line-height: 1.6; color: rgba(240,237,232,0.6); }
+.footer-rep-label { display: block; margin-bottom: 2px; font-family: var(--font-utility); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(234,217,245,0.6); }
 .footer-h { font-family: var(--font-utility); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(234,217,245,0.75); margin-bottom: 12px; }
 .footer-links { list-style: none; display: grid; gap: 2px; }
 .footer-links a { display: inline-flex; align-items: center; min-height: 40px; font-size: 15px; color: rgba(240,237,232,0.86); text-decoration: none; transition: color var(--dur-fast); }
@@ -1322,12 +1322,6 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
           <span><span class="contact-label">Horario</span><span class="contact-val">Lun–Vie · 8:00 am – 5:00 pm</span><span class="contact-note">Urgencias: respuesta inmediata vía SLA</span></span>
         </div>
       </div>
-
-      <div class="contact-rep">
-        <span class="contact-rep-label">Representante Legal</span>
-        <p class="contact-rep-name">Ivette Flores</p>
-        <p class="contact-rep-title">Abogada · Especialista en Régimen de Propiedad Horizontal · ForumPHs</p>
-      </div>
     </div>
 
     <div class="form-card reveal">
@@ -1389,6 +1383,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <div>
         <span class="wm wm-md" role="img" aria-label="ForumPHs"><span class="f">Forum</span><span class="ph">PH</span><span class="s">s</span></span>
         <p class="footer-slogan">Construiste tu patrimonio. <span>Nosotros le construimos un sistema.</span></p>
+        <p class="footer-rep"><span class="footer-rep-label">Representante legal</span>Ivette Flores · Abogada, especialista en Régimen de Propiedad Horizontal</p>
       </div>
       <nav aria-label="Secciones">
         <p class="footer-h">Sitio</p>
