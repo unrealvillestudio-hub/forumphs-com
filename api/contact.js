@@ -8,6 +8,39 @@ const MAX_LEN = { nombre: 200, correo: 254, telefono: 40, propiedad: 200, rol: 4
 // el dominio y sin espacios ni caracteres que rompan un `mailto:` o una cabecera.
 const EMAIL_RE = /^[^\s@<>"'()\\,;:]+@[^\s@<>"'()\\,;:]+\.[^\s@<>"'()\\,;:]+$/;
 
+// ── Defensa contra bots ──────────────────────────────────────────────────────────────
+// Dos señales, ninguna visible para una persona:
+//   · un campo trampa que la portada oculta a las personas y que un bot rellena;
+//   · el tiempo que pasó entre la carga de la página y el envío. Lo mide el NAVEGADOR
+//     (`form_ms`, en milisegundos) para no depender de que su reloj coincida con el del
+//     servidor. Nadie escribe nombre, correo y situación en menos de tres segundos.
+//
+// Si el navegador no ejecuta JavaScript, `form_ms` no llega y el envío se acepta: el campo
+// trampa sigue protegiendo. Un valor que no es un número entero sí delata a un bot,
+// porque la portada sólo escribe enteros.
+//
+// Un envío marcado como bot NO recibe un error: recibe la misma confirmación que una
+// persona. Si se le dijera que falló, el bot aprendería qué cambiar.
+export const HONEYPOT_FIELD = 'sitio_web';
+export const ELAPSED_FIELD = 'form_ms';
+const MIN_FILL_MS = 3_000;
+const MAX_FILL_MS = 24 * 60 * 60 * 1000;
+
+// Devuelve el motivo por el que el envío parece de un bot, o `null` si parece de una persona.
+export function botReason(body) {
+  const trap = body?.[HONEYPOT_FIELD];
+  if (trap != null && String(trap).trim() !== '') return 'HONEYPOT';
+
+  const raw = body?.[ELAPSED_FIELD];
+  if (raw == null || raw === '') return null;
+  const text = String(raw).trim();
+  if (!/^\d{1,12}$/.test(text)) return 'BAD_TIMER';
+  const ms = Number(text);
+  if (ms < MIN_FILL_MS) return 'TOO_FAST';
+  if (ms > MAX_FILL_MS) return 'STALE_FORM';
+  return null;
+}
+
 // Texto de un campo: siempre cadena, recortado y acotado a su tope.
 function field(body, name) {
   const raw = body?.[name];
@@ -39,6 +72,15 @@ export default async function handler(req, res) {
   }
 
   const body = req.body ?? {};
+
+  // Antes que cualquier validación: a un bot no se le dice qué campo le faltó. El log
+  // lleva sólo el motivo, nunca lo que escribió.
+  const bot = botReason(body);
+  if (bot) {
+    console.error(`[contact] CONTACT_BOT_${bot}`);
+    return res.redirect(303, '/?enviado=1');
+  }
+
   const nombre = field(body, 'nombre');
   const correo = field(body, 'correo');
   const telefono = field(body, 'telefono');
