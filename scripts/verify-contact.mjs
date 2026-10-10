@@ -124,5 +124,31 @@ check('sin clave → 303 /?enviado=0 y no se llama a Resend', FAILED(res) && mai
 check('el log lleva CONTACT_NO_API_KEY', logged.some((l) => l.includes('[contact] CONTACT_NO_API_KEY')));
 process.env.RESEND_API_KEY = savedKey;
 
+console.log('\n── 8 · Defensa contra bots ──');
+// Un bot recibe la MISMA confirmación que una persona (303 a /?enviado=1), pero no se
+// envía ningún correo. El log lleva el motivo y nunca lo que escribió.
+const SILENT = (r, m) => r.statusCode === 303 && r.location === '/?enviado=1' && m === null;
+let bot;
+bot = await post({ ...OK, sitio_web: 'https://spam.example' });
+check('campo trampa relleno → confirmación sin envío', SILENT(bot.res, bot.mail), `${bot.res.statusCode} ${bot.res.location}`);
+check('el log lleva CONTACT_BOT_HONEYPOT', logged.some((l) => l.includes('[contact] CONTACT_BOT_HONEYPOT')));
+check('el log no lleva lo que escribió el bot', !logged.some((l) => l.includes('spam.example')));
+bot = await post({ ...OK, form_ms: '800' });
+check('enviado en menos de 3 s → confirmación sin envío', SILENT(bot.res, bot.mail));
+check('el log lleva CONTACT_BOT_TOO_FAST', logged.some((l) => l.includes('[contact] CONTACT_BOT_TOO_FAST')));
+bot = await post({ ...OK, form_ms: 'abc' });
+check('tiempo que no es un entero → confirmación sin envío', SILENT(bot.res, bot.mail));
+check('el log lleva CONTACT_BOT_BAD_TIMER', logged.some((l) => l.includes('[contact] CONTACT_BOT_BAD_TIMER')));
+bot = await post({ ...OK, form_ms: String(2 * 24 * 60 * 60 * 1000) });
+check('formulario abierto hace más de 24 h → confirmación sin envío', SILENT(bot.res, bot.mail));
+bot = await post({ ...OK, sitio_web: '', form_ms: '45000' });
+check('persona (trampa vacía, 45 s) → se envía', bot.res.location === '/?enviado=1' && bot.mail !== null);
+bot = await post({ ...OK, sitio_web: '   ' });
+check('trampa con sólo espacios cuenta como vacía → se envía', bot.mail !== null);
+bot = await post(OK);
+check('sin form_ms (navegador sin JavaScript) → se envía', bot.mail !== null);
+bot = await post({ ...OK, correo: 'sin-arroba', sitio_web: 'x' });
+check('bot con correo inválido: no se le dice qué falló', SILENT(bot.res, bot.mail));
+
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);
