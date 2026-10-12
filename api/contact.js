@@ -1,4 +1,5 @@
 import { escapeHtml } from './_render.js';
+import { ackAllowed, ackPayload } from './_ack.js';
 
 // Topes de longitud por campo. El formulario es para una primera conversación: nada
 // legítimo necesita más, y un tope evita que el endpoint reenvíe cuerpos arbitrarios.
@@ -64,6 +65,31 @@ function failed(res, code, detail) {
   if (detail === undefined) console.error(`[contact] ${code}`);
   else console.error(`[contact] ${code}`, detail);
   return res.redirect(303, '/?enviado=0');
+}
+
+// Acuse al visitante (ver `_ack.js`). Best-effort: la consulta ya llegó al buzón, así que un
+// fallo aquí se registra con su código y el visitante sigue viendo la confirmación.
+async function sendAck(correo) {
+  if (!ackAllowed(correo)) {
+    console.error('[contact] CONTACT_ACK_SKIPPED_OWN_DOMAIN');
+    return;
+  }
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(ackPayload(correo))
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => null);
+      console.error('[contact] CONTACT_ACK_ERROR', { status: response.status, err });
+    }
+  } catch (e) {
+    console.error('[contact] CONTACT_ACK_ERROR', e);
+  }
 }
 
 export default async function handler(req, res) {
@@ -139,6 +165,7 @@ export default async function handler(req, res) {
     });
 
     if (response.ok) {
+      await sendAck(correo);
       return res.redirect(303, '/?enviado=1');
     } else {
       const err = await response.json().catch(() => null);
