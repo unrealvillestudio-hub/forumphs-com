@@ -124,5 +124,76 @@ check('sin clave → 303 /?enviado=0 y no se llama a Resend', FAILED(res) && mai
 check('el log lleva CONTACT_NO_API_KEY', logged.some((l) => l.includes('[contact] CONTACT_NO_API_KEY')));
 process.env.RESEND_API_KEY = savedKey;
 
+console.log('\n── 8 · Defensa contra bots ──');
+// Un bot recibe la MISMA confirmación que una persona (303 a /?enviado=1), pero no se
+// envía ningún correo. El log lleva el motivo y nunca lo que escribió.
+const SILENT = (r, m) => r.statusCode === 303 && r.location === '/?enviado=1' && m === null;
+let bot;
+bot = await post({ ...OK, sitio_web: 'https://spam.example' });
+check('campo trampa relleno → confirmación sin envío', SILENT(bot.res, bot.mail), `${bot.res.statusCode} ${bot.res.location}`);
+check('el log lleva CONTACT_BOT_HONEYPOT', logged.some((l) => l.includes('[contact] CONTACT_BOT_HONEYPOT')));
+check('el log no lleva lo que escribió el bot', !logged.some((l) => l.includes('spam.example')));
+bot = await post({ ...OK, form_ms: '800' });
+check('enviado en menos de 3 s → confirmación sin envío', SILENT(bot.res, bot.mail));
+check('el log lleva CONTACT_BOT_TOO_FAST', logged.some((l) => l.includes('[contact] CONTACT_BOT_TOO_FAST')));
+bot = await post({ ...OK, form_ms: 'abc' });
+check('tiempo que no es un entero → confirmación sin envío', SILENT(bot.res, bot.mail));
+check('el log lleva CONTACT_BOT_BAD_TIMER', logged.some((l) => l.includes('[contact] CONTACT_BOT_BAD_TIMER')));
+bot = await post({ ...OK, form_ms: String(2 * 24 * 60 * 60 * 1000) });
+check('formulario abierto hace más de 24 h → confirmación sin envío', SILENT(bot.res, bot.mail));
+bot = await post({ ...OK, sitio_web: '', form_ms: '45000' });
+check('persona (trampa vacía, 45 s) → se envía', bot.res.location === '/?enviado=1' && bot.mail !== null);
+bot = await post({ ...OK, sitio_web: '   ' });
+check('trampa con sólo espacios cuenta como vacía → se envía', bot.mail !== null);
+bot = await post(OK);
+check('sin form_ms (navegador sin JavaScript) → se envía', bot.mail !== null);
+bot = await post({ ...OK, correo: 'sin-arroba', sitio_web: 'x' });
+check('bot con correo inválido: no se le dice qué falló', SILENT(bot.res, bot.mail));
+
+console.log('\n── 9 · Acuse de recibo al prospecto ──');
+// Tras el aviso interno sale un segundo correo, al visitante, desde no-reply@. No repite NADA
+// de lo que escribió: si lo hiciera, el formulario serviría para mandar cualquier texto con
+// nuestra firma a cualquier dirección.
+let r9 = await post({ ...OK, nombre: 'Compre ya en https://spam.example', propiedad: 'PH <b>Spam</b>', mensaje: 'texto del visitante' });
+let ack = sent[1]?.body ?? null;
+check('se envían dos correos: aviso interno y acuse', sent.length === 2, String(sent.length));
+check('el aviso interno va primero, a contacto@ (canal único de prospección)', sent[0]?.body.to?.[0] === 'contacto@forumphs.com');
+check('el acuse va al correo del visitante', ack?.to?.length === 1 && ack.to[0] === 'ana@example.com', JSON.stringify(ack?.to));
+check('el acuse sale desde no-reply@ y sin reply_to (no abre otro canal)', ack?.from === 'ForumPHs <no-reply@forumphs.com>' && !('reply_to' in (ack ?? {})));
+check('el plazo dice «24 horas en días hábiles»', /24 horas en días hábiles/.test(ack?.text ?? '') && /24 horas en días hábiles/.test(ack?.html ?? ''));
+check('el acuse dice que esa dirección no recibe respuestas', /no recibe respuestas/.test(ack?.text ?? '') && /no recibe respuestas/.test(ack?.html ?? ''));
+check('el acuse no trae teléfono ni WhatsApp', !/wa\.me|whatsapp|\+507|6722/i.test(JSON.stringify(ack ?? {})));
+check('el acuse lleva versión de texto y HTML', typeof ack?.text === 'string' && ack.text.length > 0 && typeof ack?.html === 'string');
+const ackAll = JSON.stringify(ack ?? {});
+check('el acuse no repite el nombre, la propiedad ni el mensaje', !/spam\.example|Spam|texto del visitante|Ana/.test(ackAll));
+check('el acuse se marca como respuesta automática', ack?.headers?.['Auto-Submitted'] === 'auto-replied');
+check('la confirmación del visitante no cambia', r9.res.location === '/?enviado=1');
+
+r9 = await post({ ...OK, correo: 'sales@forumphs.com' });
+check('a una dirección de forumphs.com no sale acuse (sí el aviso)', sent.length === 1 && r9.res.location === '/?enviado=1', String(sent.length));
+check('el log lo registra (CONTACT_ACK_SKIPPED_OWN_DOMAIN)', logged.some((l) => l.includes('[contact] CONTACT_ACK_SKIPPED_OWN_DOMAIN')));
+r9 = await post({ ...OK, correo: 'x@Mail.ForumPHs.com' });
+check('tampoco a un subdominio, con mayúsculas o sin ellas', sent.length === 1);
+
+r9 = await post({ ...OK, sitio_web: 'https://spam.example' });
+check('un bot no recibe acuse', sent.length === 0);
+
+// El acuse falla y el aviso no: el visitante ve la confirmación, el fallo va al log.
+const fetchBefore9 = globalThis.fetch;
+globalThis.fetch = async (url, init) => {
+  const body = JSON.parse(init.body);
+  sent.push({ url: String(url), body });
+  return body.to?.[0] === 'contacto@forumphs.com'
+    ? { ok: true, json: async () => ({ id: 'simulado' }) }
+    : { ok: false, status: 422, json: async () => ({ message: 'fallo simulado del acuse' }) };
+};
+r9 = await post(OK);
+check('acuse fallido → el visitante sigue viendo /?enviado=1', r9.res.location === '/?enviado=1');
+check('el log lleva CONTACT_ACK_ERROR', logged.some((l) => l.includes('[contact] CONTACT_ACK_ERROR')));
+globalThis.fetch = async () => { throw new Error('red caída'); };
+r9 = await post(OK);
+check('excepción en la red → /?enviado=0 (el aviso tampoco salió)', r9.res.location === '/?enviado=0');
+globalThis.fetch = fetchBefore9;
+
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);
