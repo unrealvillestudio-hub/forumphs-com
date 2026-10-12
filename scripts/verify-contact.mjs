@@ -151,7 +151,7 @@ bot = await post({ ...OK, correo: 'sin-arroba', sitio_web: 'x' });
 check('bot con correo inválido: no se le dice qué falló', SILENT(bot.res, bot.mail));
 
 console.log('\n── 9 · Acuse de recibo al prospecto ──');
-// Tras el aviso interno sale un segundo correo, al visitante, desde contacto@. No repite NADA
+// Tras el aviso interno sale un segundo correo, al visitante, desde noreply@. No repite NADA
 // de lo que escribió: si lo hiciera, el formulario serviría para mandar cualquier texto con
 // nuestra firma a cualquier dirección.
 let r9 = await post({ ...OK, nombre: 'Compre ya en https://spam.example', propiedad: 'PH <b>Spam</b>', mensaje: 'texto del visitante' });
@@ -159,7 +159,9 @@ let ack = sent[1]?.body ?? null;
 check('se envían dos correos: aviso interno y acuse', sent.length === 2, String(sent.length));
 check('el aviso interno sigue siendo el primero (a info@)', sent[0]?.body.to?.[0] === 'info@forumphs.com');
 check('el acuse va al correo del visitante', ack?.to?.length === 1 && ack.to[0] === 'ana@example.com', JSON.stringify(ack?.to));
-check('el acuse sale desde contacto@ y responde a contacto@', ack?.from === 'ForumPHs <contacto@forumphs.com>' && ack?.reply_to === 'contacto@forumphs.com');
+check('el acuse sale desde noreply@ y sin reply_to (no abre otro canal)', ack?.from === 'ForumPHs <noreply@forumphs.com>' && !('reply_to' in (ack ?? {})));
+check('el acuse dice que esa dirección no recibe respuestas', /no recibe respuestas/.test(ack?.text ?? '') && /no recibe respuestas/.test(ack?.html ?? ''));
+check('el acuse no trae teléfono ni WhatsApp', !/wa\.me|whatsapp|\+507|6722/i.test(JSON.stringify(ack ?? {})));
 check('el acuse lleva versión de texto y HTML', typeof ack?.text === 'string' && ack.text.length > 0 && typeof ack?.html === 'string');
 const ackAll = JSON.stringify(ack ?? {});
 check('el acuse no repite el nombre, la propiedad ni el mensaje', !/spam\.example|Spam|texto del visitante|Ana/.test(ackAll));
