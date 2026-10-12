@@ -139,7 +139,9 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         from: 'ForumPHs Web <noreply@forumphs.com>',
-        to: ['info@forumphs.com'],  // alias → forumphs507@gmail.com
+        // contacto@ es el canal único de prospección (decisión de Sam, 2026-10-12); info@ queda
+        // sin uso. El remitente sigue siendo noreply@: los filtros de Gmail lo reconocen.
+        to: ['contacto@forumphs.com'],  // alias → forumphs507@gmail.com
         reply_to: correo,
         subject: `Consulta web — ${subjectName}`,
         // Todo lo que escribe el visitante entra ESCAPADO: el correo llega al buzón de la

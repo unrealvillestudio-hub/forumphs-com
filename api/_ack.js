@@ -6,7 +6,8 @@
 // el objetivo del contacto.
 //
 // Reglas del acuse (y por qué):
-//   · Sale desde `noreply@`, que NO recibe respuestas. El canal de conversación es la
+//   · Sale desde `no-reply@`, la dirección de TODOS los acuses (decisión de Sam, 2026-10-12),
+//     que no se atiende. El canal de conversación es la
 //     respuesta humana que llega después; responder al acuse no abre otra vía.
 //   · NO repite nada de lo que escribió el visitante —ni nombre, ni propiedad, ni mensaje—.
 //     El correo de destino lo escribe quien llena el formulario: si el acuse repitiera sus
@@ -19,7 +20,7 @@
 //   · Sin teléfono ni WhatsApp: el prospecto entra por un canal y se queda en él, con su
 //     traza (decisión de Sam, 2026-10-12).
 
-export const ACK_FROM = 'ForumPHs <noreply@forumphs.com>';
+export const ACK_FROM = 'ForumPHs <no-reply@forumphs.com>';
 export const OWN_DOMAIN = 'forumphs.com';
 
 export const ACK_SUBJECT = 'Recibimos su consulta — ForumPHs';
@@ -28,7 +29,7 @@ export const ACK_TEXT = `Hola:
 
 Gracias por contactarnos. Este es un mensaje automático que confirma la recepción de su consulta.
 
-Nuestro equipo le responderá en aproximadamente 24 horas.
+Nuestro equipo le responderá en aproximadamente 24 horas en días hábiles.
 
 Esta dirección no recibe respuestas.
 
@@ -39,7 +40,7 @@ export const ACK_HTML = `
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#222;line-height:1.5;">
   <p>Hola:</p>
   <p>Gracias por contactarnos. Este es un mensaje automático que confirma la recepción de su consulta.</p>
-  <p>Nuestro equipo le responderá en <strong>aproximadamente 24 horas</strong>.</p>
+  <p>Nuestro equipo le responderá en <strong>aproximadamente 24 horas en días hábiles</strong>.</p>
   <p style="font-size:13px;color:#666;">Esta dirección no recibe respuestas.</p>
   <p style="margin-top:24px;">Saludos,<br><strong style="color:#5C3472;">ForumPHs</strong></p>
 </div>
@@ -52,7 +53,7 @@ export function ackAllowed(correo) {
 }
 
 // Cuerpo de la llamada a Resend. Recibe SÓLO el destinatario: no hay vía para que un campo
-// del formulario entre al acuse. Sin `reply_to`: responder llega a `noreply@`, que no recibe.
+// del formulario entre al acuse. Sin `reply_to`: una respuesta llega a `no-reply@`, que no se atiende.
 export function ackPayload(correo) {
   return {
     from: ACK_FROM,
