@@ -651,34 +651,50 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 .contact-grid { display: grid; gap: 40px; align-items: start; }
 .contact-intro { font-size: 1.0625rem; font-weight: 300; color: var(--text-2); line-height: 1.7; margin-bottom: 28px; }
 .contact-list { display: grid; gap: 10px; }
-.contact-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 68px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none; transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast); }
+.contact-item { display: flex; align-items: center; gap: 14px; padding: 16px; min-height: 76px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none; transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast); }
 a.contact-item:hover { border-color: rgba(234,217,245,0.25); transform: translateY(-1px); background: #171d2d; }
 a.contact-item.wa:hover { border-color: rgba(37,211,102,0.55); }
-.contact-icon { width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; background: var(--am-tint); color: var(--am-l); }
-.contact-icon svg { width: 20px; height: 20px; }
+.contact-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; background: var(--am-tint); color: var(--am-l); }
+.contact-icon svg { width: 22px; height: 22px; }
 .contact-item.wa .contact-icon { background: rgba(37,211,102,0.12); color: var(--wa); }
 /* Cada canal lleva su color: el visitante distingue de un vistazo cuál le corresponde.
+   Jade en la insignia de clientes es una excepción declarada a «nunca un relleno»: la pidió
+   Sam el 2026-10-14 porque Amatista Light no resaltaba junto al verde y al Terra.
    El filete izquierdo y la insignia usan el acento del canal; la insignia lleva texto
-   carbon-d sobre el acento (wa 9.6:1 · am-l 14.2:1 · terra 4.6:1), nunca acento sobre oscuro,
+   carbon-d sobre el acento (wa 9.6:1 · jade 7.7:1 · terra 4.6:1), nunca acento sobre oscuro,
    porque terra como texto pequeño sobre la superficie se queda en 4.3:1. */
 .contact-item.wa   { --acc: var(--wa); }
-.contact-item.cli  { --acc: var(--am-l); }
+.contact-item.cli  { --acc: var(--jade); }
 .contact-item.prov { --acc: var(--terra); }
 .contact-item.wa, .contact-item.cli, .contact-item.prov { border-left: 3px solid var(--acc); }
 .contact-item.prov .contact-icon { background: rgba(196,98,45,0.14); color: var(--terra); }
 a.contact-item.prov:hover { border-color: rgba(196,98,45,0.6); border-left-color: var(--terra); }
-a.contact-item.cli:hover { border-left-color: var(--am-l); }
+.contact-item.cli .contact-icon { background: rgba(95,180,156,0.14); color: var(--jade); }
+a.contact-item.cli:hover { border-color: rgba(95,180,156,0.6); border-left-color: var(--jade); }
 .contact-item.wa .contact-label, .contact-item.cli .contact-label, .contact-item.prov .contact-label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .contact-item > span:nth-child(2) { min-width: 0; }
-.contact-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--acc); color: var(--carbon-d); font-weight: 700; font-size: 9.5px; letter-spacing: 0.14em; line-height: 1.5; }
+.contact-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--acc); color: var(--carbon-d); font-weight: 700; font-size: 10.5px; letter-spacing: 0.1em; line-height: 1.5; max-width: 100%; }
 .contact-warn { display: flex; gap: 10px; align-items: flex-start; margin: -8px 0 24px; padding: 12px 14px; border: 1px solid var(--line-2); border-left: 3px solid var(--am-l); border-radius: var(--radius); background: var(--am-tint); font-size: 0.9375rem; line-height: 1.6; color: var(--text-2); }
 .contact-warn svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; color: var(--am-l); }
 .contact-warn strong { color: var(--text); font-weight: 600; }
-.contact-label { display: block; font-family: var(--font-utility); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); margin-bottom: 3px; }
-.contact-val { display: block; font-size: 16px; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
-.contact-note { display: block; font-size: 13px; color: var(--text-3); margin-top: 2px; }
-.contact-go { margin-left: auto; color: var(--text-3); font-size: 18px; transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast); }
+.contact-label { display: block; font-family: var(--font-utility); font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); margin-bottom: 3px; }
+.contact-val { display: block; font-size: 17px; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+.contact-note { display: block; font-size: 14px; color: var(--text-3); margin-top: 2px; }
+.contact-go { display: none; margin-left: auto; color: var(--text-3); font-size: 23px; transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast); }
 a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l); }
+/* Tarjetas de contacto ~30 % más grandes desde 640 px (pedido de Sam, 2026-10-14). En el
+   teléfono se quedan en un tamaño intermedio y sin la flecha decorativa: el ancho útil no da
+   para la insignia, la dirección y la flecha sin partir palabras. */
+@media (min-width: 640px) {
+  .contact-item { gap: 18px; padding: 18px 21px; min-height: 88px; }
+  .contact-icon { width: 52px; height: 52px; }
+  .contact-icon svg { width: 26px; height: 26px; }
+  .contact-label { font-size: 13px; }
+  .contact-badge { font-size: 12.5px; letter-spacing: 0.14em; padding: 3px 10px; }
+  .contact-val { font-size: 21px; }
+  .contact-note { font-size: 15px; }
+  .contact-go { display: block; }
+}
 
 .form-card { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 26px 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.35); }
 .form-kicker { display: block; font-family: var(--font-utility); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--terra); margin-bottom: 8px; }
