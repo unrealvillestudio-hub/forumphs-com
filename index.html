@@ -657,6 +657,23 @@ a.contact-item.wa:hover { border-color: rgba(37,211,102,0.55); }
 .contact-icon { width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; background: var(--am-tint); color: var(--am-l); }
 .contact-icon svg { width: 20px; height: 20px; }
 .contact-item.wa .contact-icon { background: rgba(37,211,102,0.12); color: var(--wa); }
+/* Cada canal lleva su color: el visitante distingue de un vistazo cuál le corresponde.
+   El filete izquierdo y la insignia usan el acento del canal; la insignia lleva texto
+   carbon-d sobre el acento (wa 9.6:1 · am-l 14.2:1 · terra 4.6:1), nunca acento sobre oscuro,
+   porque terra como texto pequeño sobre la superficie se queda en 4.3:1. */
+.contact-item.wa   { --acc: var(--wa); }
+.contact-item.cli  { --acc: var(--am-l); }
+.contact-item.prov { --acc: var(--terra); }
+.contact-item.wa, .contact-item.cli, .contact-item.prov { border-left: 3px solid var(--acc); }
+.contact-item.prov .contact-icon { background: rgba(196,98,45,0.14); color: var(--terra); }
+a.contact-item.prov:hover { border-color: rgba(196,98,45,0.6); border-left-color: var(--terra); }
+a.contact-item.cli:hover { border-left-color: var(--am-l); }
+.contact-item.wa .contact-label, .contact-item.cli .contact-label, .contact-item.prov .contact-label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.contact-item > span:nth-child(2) { min-width: 0; }
+.contact-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--acc); color: var(--carbon-d); font-weight: 700; font-size: 9.5px; letter-spacing: 0.14em; line-height: 1.5; }
+.contact-warn { display: flex; gap: 10px; align-items: flex-start; margin: -8px 0 24px; padding: 12px 14px; border: 1px solid var(--line-2); border-left: 3px solid var(--am-l); border-radius: var(--radius); background: var(--am-tint); font-size: 0.9375rem; line-height: 1.6; color: var(--text-2); }
+.contact-warn svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; color: var(--am-l); }
+.contact-warn strong { color: var(--text); font-weight: 600; }
 .contact-label { display: block; font-family: var(--font-utility); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); margin-bottom: 3px; }
 .contact-val { display: block; font-size: 16px; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
 .contact-note { display: block; font-size: 13px; color: var(--text-3); margin-top: 2px; }
@@ -1320,22 +1337,23 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
       <div class="eyebrow">Contacto</div>
       <h2 class="h2">La conversación empieza <em>aquí.</em></h2>
       <p class="contact-intro">Cada mes sin un sistema es un mes de cuotas sin cobrar, asambleas sin actas y propietarios sin respuestas.</p>
+      <p class="contact-warn" role="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span><strong>Use el canal que corresponde a su caso.</strong> Así su mensaje llega directo a quien debe atenderlo; por otro canal, la respuesta puede demorarse o no llegar.</span></p>
 
       <div class="contact-list">
         <a class="contact-item wa" href="https://wa.me/50767227355?text=Hola%2C%20escribo%20desde%20forumphs.com%20y%20quisiera%20informaci%C3%B3n%20sobre%20la%20administraci%C3%B3n%20de%20mi%20PH." target="_blank" rel="noopener">
           <span class="contact-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wa"/></svg></span>
-          <span><span class="contact-label">WhatsApp</span><span class="contact-val">+507 6722-7355</span><span class="contact-note">Respuesta directa del equipo</span></span>
+          <span><span class="contact-label">WhatsApp<span class="contact-badge">Solo para clientes</span></span><span class="contact-val">+507 6722-7355</span><span class="contact-note">Respuesta directa del equipo</span></span>
           <span class="contact-go" aria-hidden="true">→</span>
         </a>
-        <a class="contact-item" href="mailto:contacto@forumphs.com?subject=Contacto%20desde%20forumphs.com" data-copy-note="copy-note-card">
+        <a class="contact-item cli" href="mailto:contacto@forumphs.com?subject=Contacto%20desde%20forumphs.com" data-copy-note="copy-note-card">
           <span class="contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-          <span><span class="contact-label">Correo</span><span class="contact-val">contacto@forumphs.com</span></span>
+          <span><span class="contact-label">Correo<span class="contact-badge">Solo para clientes</span></span><span class="contact-val">contacto@forumphs.com</span></span>
           <span class="contact-go" aria-hidden="true">→</span>
         </a>
         <p class="copy-note" id="copy-note-card" aria-live="polite"></p>
-        <a class="contact-item" href="mailto:proveedores@forumphs.com?subject=Propuesta%20de%20proveedor" data-copy-note="copy-note-card-prov">
+        <a class="contact-item prov" href="mailto:proveedores@forumphs.com?subject=Propuesta%20de%20proveedor" data-copy-note="copy-note-card-prov">
           <span class="contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 9l2-5h14l2 5"/><path d="M12 9v12"/></svg></span>
-          <span><span class="contact-label">Proveedores</span><span class="contact-val">proveedores@forumphs.com</span><span class="contact-note">Ofertas de productos y servicios para PH</span></span>
+          <span><span class="contact-label">Correo<span class="contact-badge">Solo para proveedores</span></span><span class="contact-val">proveedores@forumphs.com</span><span class="contact-note">Ofertas de productos y servicios para PH</span></span>
           <span class="contact-go" aria-hidden="true">→</span>
         </a>
         <p class="copy-note" id="copy-note-card-prov" aria-live="polite"></p>
