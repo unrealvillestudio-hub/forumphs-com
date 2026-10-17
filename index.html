@@ -161,13 +161,16 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 /* ── WORDMARK — siempre HTML/CSS, nunca imagen (BP → wordmark). Las tres partes comparten
    el mismo font-size: así «Forum» y «PH» alinean su altura de caja. */
 .wm { display: inline-flex; align-items: baseline; line-height: 1; white-space: nowrap; }
-.wm .f  { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.01em; color: #fff; }
-.wm .ph { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.06em; color: var(--terra); }
-.wm .s  { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.04em; color: var(--terra); }
-.wm-nav > span { font-size: 22px; }
-.wm-md > span { font-size: 26px; }
-.wm-sm > span { font-size: 20px; }
-.wm-lg > span { font-size: 34px; }
+/* Logotype v2 (Sam, 2026-10-17): «PH» en negrita, «Forum» y «s» en regular; la «s» a la
+   altura de x de «orum» (DM Sans .81 de EB Garamond, medido) y las juntas entre familias
+   igualadas. El tamaño va en el contenedor y en las partes: la «s» resuelve su em contra él. */
+.wm .f  { font-family: var(--font-display); font-weight: 400; letter-spacing: 0; color: #fff; }
+.wm .ph { font-family: var(--font-body); font-weight: 700; letter-spacing: -0.03em; margin-left: -0.03em; color: var(--terra); }
+.wm .s  { font-family: var(--font-body); font-weight: 400; letter-spacing: 0; font-size: 0.81em; color: var(--terra); }
+.wm-nav, .wm-nav > span { font-size: 22px; }
+.wm-md, .wm-md > span { font-size: 26px; }
+.wm-sm, .wm-sm > span { font-size: 20px; }
+.wm-lg, .wm-lg > span { font-size: 34px; }
 
 /* ── Tipografía base ── */
 .eyebrow {
@@ -595,9 +598,9 @@ h1, h2, h3, p, blockquote, summary, .btn { overflow-wrap: break-word; }
 .net-core-disc { stroke: #EAD9F5; stroke-opacity: 0.6; stroke-width: 1.2; }
 /* El logotipo en el núcleo es el mismo wordmark de la cabecera (.wm), en texto: nunca imagen. */
 .net-wm { font-size: 14.5px; text-anchor: middle; }
-.net-wm .f  { font-family: var(--font-display); font-weight: 400; letter-spacing: 0.01em; fill: #fff; }
-.net-wm .ph { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.06em; fill: #C4622D; }
-.net-wm .s  { font-family: var(--font-body); font-weight: 700; letter-spacing: 0.04em; fill: #C4622D; }
+.net-wm .f  { font-family: var(--font-display); font-weight: 400; letter-spacing: 0; fill: #fff; }
+.net-wm .ph { font-family: var(--font-body); font-weight: 700; letter-spacing: -0.03em; fill: #C4622D; }
+.net-wm .s  { font-family: var(--font-body); font-weight: 400; letter-spacing: 0; font-size: 0.81em; fill: #C4622D; }
 .orbit-caption { max-width: 24rem; text-align: center; font-family: var(--font-editorial); font-size: 1.2rem; font-style: italic; line-height: 1.4; color: var(--text-2); }
 .orbit-caption span { color: var(--terra); }
 
@@ -870,8 +873,8 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
 }
 @media (min-width: 1360px) { .brand-sub { display: block; } }
 @media (max-width: 1099.98px) { .header-actions .btn { display: none; } }
-@media (max-width: 380px) { .wm-nav > span { font-size: 20px; } .trust-label { letter-spacing: 0.06em; } }
-@media (max-width: 330px) { :root { --gutter: 16px; } .wm-nav > span { font-size: 18px; } .icon-btn { width: 42px; height: 42px; } .header-actions { gap: 6px; } }
+@media (max-width: 380px) { .wm-nav, .wm-nav > span { font-size: 20px; } .trust-label { letter-spacing: 0.06em; } }
+@media (max-width: 330px) { :root { --gutter: 16px; } .wm-nav, .wm-nav > span { font-size: 18px; } .icon-btn { width: 42px; height: 42px; } .header-actions { gap: 6px; } }
 
 /* ── Movimiento reducido (a11y · A11Y-7) ── */
 @media (prefers-reduced-motion: reduce) {
@@ -1228,7 +1231,7 @@ a.contact-item:hover .contact-go { transform: translateX(3px); color: var(--am-l
           <circle class="net-beat" r="42" stroke="#EAD9F5" opacity="0"/>
           <g class="net-core">
             <circle class="net-core-disc" r="42" fill="url(#nc-fill)"/>
-            <text class="net-wm" y="5"><tspan class="f">Forum</tspan><tspan class="ph">PH</tspan><tspan class="s">s</tspan></text>
+            <text class="net-wm" y="5"><tspan class="f">Forum</tspan><tspan class="ph" dx="-0.03em">PH</tspan><tspan class="s">s</tspan></text>
           </g>
         </svg>
       </div>

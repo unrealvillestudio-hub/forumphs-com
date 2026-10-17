@@ -34,9 +34,12 @@ export function absoluteUrl(baseUrl, path) {
 // Geometria del wordmark, portada verbatim del vFINAL. Es EJE: no depende de ninguna
 // marca. Se exporta porque la sirven dos superficies —la cabecera del blog y las paginas
 // de aviso de /bim— y una sola definicion es lo que impide que se separen.
+//
+// El tamaño se fija en el contenedor Y en las partes: así una parte con `scale` resuelve su
+// `em` contra el tamaño del wordmark, no contra el del texto que lo rodea.
 export const WORDMARK_GEOMETRY = `.wm{display:inline-flex;align-items:baseline;gap:0;line-height:1}
-.wm-xl>span{font-size:54px}.wm-lg>span{font-size:36px}.wm-md>span{font-size:26px}
-.wm-sm>span{font-size:18px}.wm-xs>span{font-size:13px}.wm-xxs>span{font-size:10px}`;
+.wm-xl,.wm-xl>span{font-size:54px}.wm-lg,.wm-lg>span{font-size:36px}.wm-md,.wm-md>span{font-size:26px}
+.wm-sm,.wm-sm>span{font-size:18px}.wm-xs,.wm-xs>span{font-size:13px}.wm-xxs,.wm-xxs>span{font-size:10px}`;
 
 const STYLE = `
 /* Tokens del sistema Amatista Carbon (BluePrints BP_BRAND → palette), los mismos que
@@ -217,8 +220,13 @@ const FONT_PRELOADS = ['/assets/site/fonts/dm-sans-400-latin.woff2', '/assets/si
 //
 // El sistema de marca lo declara como HTML/CSS, nunca como imagen. Este modulo NO lo
 // lleva escrito: sabe que un wordmark es una secuencia de partes, cada una con un texto,
-// un ROL tipografico, un peso, un ROL de color y un tracking. Los valores salen de
-// `config.wordmark` de la fila del canal.
+// un ROL tipografico, un peso, un ROL de color y un tracking, y opcionalmente una ESCALA
+// (`scale`, fraccion del tamaño del wordmark) y un ESPACIO PREVIO (`space_before`, en em de
+// la propia parte). Los valores salen de `config.wordmark` de la fila del canal.
+//
+// Escala y espacio previo existen porque un wordmark que mezcla dos familias no se alinea
+// solo: la altura de x y los blancos laterales de cada familia son distintos, y la junta
+// entre ellas no tiene kerning. Se ajustan en el dato, parte por parte.
 //
 // Escribir «Forum» y «PHs» aqui seria poner la marca de UNA marca en el renderizador que
 // sirve el blog de TRES. Por eso las clases de parte son POSICIONALES y no `.f` / `.ph` /
@@ -233,6 +241,14 @@ const WM_FONT_ROLES = { display: 'font_display', serif: 'font_serif', sans: 'fon
 const WM_COLOR_VARS = { text: '--chalk', text_2: '--chalk-72', text_3: '--chalk-42', accent: '--terra', warn: '--gold' };
 const WM_FALLBACK = { font_display: "'EB Garamond',serif", font_serif: "'Cormorant Garamond',serif", font_sans: "'DM Sans',sans-serif" };
 const WM_SIZES = new Set(['xxs', 'xs', 'sm', 'md', 'lg', 'xl']);
+
+// Un numero dentro del rango, o null. Fuera de rango no se recorta: se ignora, porque un
+// valor absurdo en el dato es un error del dato y no una intencion que haya que aproximar.
+function inRange(raw, min, max) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= min && n <= max ? Math.round(n * 1000) / 1000 : null;
+}
 
 // Una parte invalida se descarta y se anota; no se dibuja a medias ni tumba la pagina.
 export function wordmarkParts(config) {
@@ -252,6 +268,8 @@ export function wordmarkParts(config) {
       weight: Number.isFinite(Number(p?.weight)) ? Math.round(Number(p.weight)) : 400,
       color: hex ?? (WM_COLOR_VARS[p?.color] ? `var(${WM_COLOR_VARS[p.color]})` : `var(${WM_COLOR_VARS.text})`),
       tracking: /^-?[0-9.]{1,6}em$/.test(String(p?.tracking ?? '')) ? String(p.tracking) : '0',
+      scale: inRange(p?.scale, 0.3, 1.5),
+      spaceBefore: inRange(p?.space_before, -0.5, 1),
     });
   }
   return parts.length ? parts : null;
@@ -265,7 +283,10 @@ export function wordmarkStyle(config) {
   const vars = parts.map((p, i) => `--wm-c${i}:${p.color}`).join(';');
   const rules = parts.map((p, i) =>
     `.wm>span:nth-child(${i + 1}){font-family:${p.family};font-weight:${p.weight};`
-    + `letter-spacing:${p.tracking};color:var(--wm-c${i})}`).join('');
+    + `letter-spacing:${p.tracking};color:var(--wm-c${i})`
+    + (p.scale !== null ? `;font-size:${p.scale}em` : '')
+    + (p.spaceBefore !== null ? `;margin-left:${p.spaceBefore}em` : '')
+    + '}').join('');
   return `.wm{${vars}}${rules}`;
 }
 
