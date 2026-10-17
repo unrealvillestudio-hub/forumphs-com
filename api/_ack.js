@@ -44,7 +44,7 @@ forumphs.com`;
 // (EB Garamond + DM Sans de assets/site/fonts) con el slogan pegado debajo, como en la firma
 // original, y el fondo Amatista Light ya horneado, para que el modo oscuro de un cliente no lo
 // deje ilegible. Medidas fijas: no se agranda.
-export const ACK_LOGOTYPE_URL = 'https://forumphs.com/assets/email/forumphs-logotype-slogan-on-am-l@3x.png';
+export const ACK_LOGOTYPE_URL = 'https://forumphs.com/assets/email/forumphs-firma-logotype-slogan@3x.png';
 
 // Cuerpo con la paleta `email_body` del BP (fondo #F8F5F2, texto ink) y firma de
 // `email_signature_html`, en tablas. Los productos automatizados no nombran personas
@@ -60,7 +60,7 @@ export const ACK_HTML = `
   <p style="margin:0 0 14px;font-size:13px;color:#4A4440;">Esta dirección no recibe respuestas.</p>
   <p style="margin:0;">Saludos,</p>
 </td></tr>
-<tr><td><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;border-collapse:collapse;"><tr><td style="background:#EAD9F5;padding:20px 30px;border-top:1px solid #DCC9E8;"><img src="https://forumphs.com/assets/email/forumphs-logotype-slogan-on-am-l@3x.png" alt="ForumPHs" width="342" height="64" style="display:block;border:0;outline:none;width:342px;height:64px;font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:20px;color:#5C3472;"></td></tr><tr><td style="background:#E4D6F0;padding:14px 30px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="right" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:8.5px;letter-spacing:0.04em;color:#A99AB8;white-space:nowrap;">forumphs.com</td></tr></table></td></tr></table></td></tr>
+<tr><td><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;border-collapse:collapse;"><tr><td style="background:#EAD9F5;padding:20px 30px;border-top:1px solid #DCC9E8;"><img src="https://forumphs.com/assets/email/forumphs-firma-logotype-slogan@3x.png" alt="ForumPHs" width="342" height="64" style="display:block;border:0;outline:none;width:342px;height:64px;font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:20px;color:#5C3472;"></td></tr></table></td></tr>
 </table>
 </td></tr>
 </table>
