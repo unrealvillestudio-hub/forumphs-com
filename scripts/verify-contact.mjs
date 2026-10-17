@@ -162,7 +162,7 @@ check('el acuse va al correo del visitante', ack?.to?.length === 1 && ack.to[0] 
 check('el acuse sale desde no-reply@ y sin reply_to (no abre otro canal)', ack?.from === 'ForumPHs <no-reply@forumphs.com>' && !('reply_to' in (ack ?? {})));
 check('el plazo dice «24 horas en días hábiles»', /24 horas en días hábiles/.test(ack?.text ?? '') && /24 horas en días hábiles/.test(ack?.html ?? ''));
 check('el acuse dice que esa dirección no recibe respuestas', /no recibe respuestas/.test(ack?.text ?? '') && /no recibe respuestas/.test(ack?.html ?? ''));
-check('el acuse no trae teléfono ni WhatsApp', !/wa\.me|whatsapp|\+507|6722/i.test(JSON.stringify(ack ?? {})));
+check('el acuse no trae teléfono ni WhatsApp', !/wa\.me|whatsapp|\+507|6722|6317/i.test(JSON.stringify(ack ?? {})));
 check('el acuse lleva versión de texto y HTML', typeof ack?.text === 'string' && ack.text.length > 0 && typeof ack?.html === 'string');
 const ackAll = JSON.stringify(ack ?? {});
 check('el acuse no repite el nombre, la propiedad ni el mensaje', !/spam\.example|Spam|texto del visitante|Ana/.test(ackAll));
