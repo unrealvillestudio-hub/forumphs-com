@@ -34,16 +34,35 @@ Nuestro equipo le responderá en aproximadamente 24 horas en días hábiles.
 Esta dirección no recibe respuestas.
 
 Saludos,
-ForumPHs`;
+ForumPHs
+Construiste tu patrimonio. Nosotros le construimos un sistema.
+forumphs.com`;
 
+// Logotype de correo: PNG, no texto. Excepción a la regla «sin PNG ni raster» aprobada por
+// Sam el 2026-10-17 SÓLO para correo: los clientes de correo no cargan las tipografías de la
+// marca, y una imagen es lo único que se ve igual en todos. Se genera desde el logotype v2
+// (EB Garamond + DM Sans de assets/site/fonts) con el fondo Amatista Light ya horneado, para
+// que el modo oscuro de un cliente no lo deje ilegible. Medidas fijas: no se agranda.
+export const ACK_LOGOTYPE_URL = 'https://forumphs.com/assets/email/forumphs-logotype-light-on-am-l@3x.png';
+
+// Cuerpo con la paleta `email_body` del BP (fondo #F8F5F2, texto ink) y firma de
+// `email_signature_html`, en tablas. Los productos automatizados no nombran personas
+// (BP_Brand_Context, 2026-09-30): la firma es la marca, no alguien.
 export const ACK_HTML = `
-<div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#222;line-height:1.5;">
-  <p>Hola:</p>
-  <p>Gracias por contactarnos. Este es un mensaje automático que confirma la recepción de su consulta.</p>
-  <p>Nuestro equipo le responderá en <strong>aproximadamente 24 horas en días hábiles</strong>.</p>
-  <p style="font-size:13px;color:#666;">Esta dirección no recibe respuestas.</p>
-  <p style="margin-top:24px;">Saludos,<br><strong style="color:#5C3472;">ForumPHs</strong></p>
-</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8F5F2;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">
+<tr><td style="padding:0 30px 24px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1A1612;">
+  <p style="margin:0 0 14px;">Hola:</p>
+  <p style="margin:0 0 14px;">Gracias por contactarnos. Este es un mensaje automático que confirma la recepción de su consulta.</p>
+  <p style="margin:0 0 14px;">Nuestro equipo le responderá en <strong style="color:#5C3472;">aproximadamente 24 horas en días hábiles</strong>.</p>
+  <p style="margin:0 0 14px;font-size:13px;color:#4A4440;">Esta dirección no recibe respuestas.</p>
+  <p style="margin:0;">Saludos,</p>
+</td></tr>
+<tr><td><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;border-collapse:collapse;"><tr><td style="background:#EAD9F5;padding:20px 30px;border-top:1px solid #DCC9E8;"><img src="https://forumphs.com/assets/email/forumphs-logotype-light-on-am-l@3x.png" alt="ForumPHs" width="141" height="26" style="display:block;border:0;outline:none;width:141px;height:26px;font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:20px;color:#5C3472;"></td></tr><tr><td style="background:#E4D6F0;padding:14px 30px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-family:'EB Garamond',Georgia,'Times New Roman',serif;font-size:9.5px;font-style:italic;color:#AE95BE;">Construiste tu patrimonio. Nosotros le construimos un sistema.</td><td align="right" style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:8.5px;letter-spacing:0.04em;color:#A99AB8;white-space:nowrap;">forumphs.com</td></tr></table></td></tr></table></td></tr>
+</table>
+</td></tr>
+</table>
 `;
 
 // `true` si a esa dirección se le puede mandar el acuse.

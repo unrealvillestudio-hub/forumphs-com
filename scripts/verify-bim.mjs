@@ -170,16 +170,18 @@ r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.31' });
 check('sin config.contact_email, la página no trae mailto:', !r.body.includes('mailto:'));
 
 // ── 15 · Wordmark — el eje no conoce ninguna marca ──────────────────────────────────
-// El sistema de marca de ForumPHs parte el wordmark en TRES: «Forum», «PH» y «s». Las dos
-// ultimas comparten familia y peso pero llevan espaciados distintos, que es lo que alinea
-// la «s» a la altura de x de «orum». Estas pruebas comprueban que el modulo dibuja lo que
-// el canal le dice, sin saber que dice.
+// El sistema de marca de ForumPHs parte el wordmark en TRES: «Forum», «PH» y «s». Desde el
+// logotype v2 (Sam, 2026-10-17) «PH» va en negrita y «s» en regular, la «s» se ESCALA hasta
+// la altura de x de «orum» y las juntas entre familias se ajustan con `space_before`.
+// Antes se creía que el espaciado alineaba la «s»; medido, no: a igual tamaño la altura de
+// x de DM Sans es 202 px contra 164 px de EB Garamond (a 400 px), un 23 % más alta.
+// Estas pruebas comprueban que el modulo dibuja lo que el canal le dice, sin saber que dice.
 
 const WORDMARK = {
   parts: [
-    { text: 'Forum', font: 'display', weight: 400, color: '#ffffff', tracking: '0.01em' },
-    { text: 'PH',    font: 'sans',    weight: 700, color: 'accent', tracking: '0.06em' },
-    { text: 's',     font: 'sans',    weight: 700, color: 'accent', tracking: '0.04em' },
+    { text: 'Forum', font: 'display', weight: 400, color: '#ffffff', tracking: '0em' },
+    { text: 'PH',    font: 'sans',    weight: 700, color: 'accent', tracking: '-0.03em', space_before: -0.03 },
+    { text: 's',     font: 'sans',    weight: 400, color: 'accent', tracking: '0em', scale: 0.81 },
   ],
 };
 const TEMA = { bg: '#0E1018', accent: '#C4622D', text: '#F0EDE8', font_display: 'EB Garamond', font_sans: 'DM Sans' };
@@ -194,22 +196,26 @@ check('wordmark: geometría portada del vFINAL — inline-flex y baseline',
   r.body.includes('.wm{display:inline-flex;align-items:baseline;gap:0;line-height:1}'));
 check('wordmark: "Forum" toma la familia del rol display, en regla generada del dato',
   /\.wm>span:nth-child\(1\)\{font-family:'EB Garamond',serif;font-weight:400/.test(r.body));
-check('wordmark: "PH" y "s" toman el rol sans con peso 700',
-  (r.body.match(/font-family:'DM Sans',serif;font-weight:700/g) || []).length === 2);
+check('wordmark: "PH" toma el rol sans con peso 700 y "s" con peso 400',
+  /nth-child\(2\)\{font-family:'DM Sans',serif;font-weight:700/.test(r.body)
+  && /nth-child\(3\)\{font-family:'DM Sans',serif;font-weight:400/.test(r.body));
 check('wordmark: el color va por VARIABLE, nunca por literal en la regla',
   r.body.includes('--wm-c1:var(--terra)') && r.body.includes('--wm-c2:var(--terra)')
   && !/nth-child\(2\)[^}]*#C4622D/.test(r.body));
 check('wordmark: el valor exacto del sistema de marca viaja en su propia variable',
   r.body.includes('--wm-c0:#ffffff'));
-check('wordmark: espaciados distintos en "PH" y en "s" — es lo que alinea la s',
-  r.body.includes('letter-spacing:0.06em') && r.body.includes('letter-spacing:0.04em'));
+check('wordmark: el tracking de cada parte sale del dato',
+  r.body.includes('letter-spacing:-0.03em') && /nth-child\(1\)\{[^}]*letter-spacing:0em/.test(r.body));
 
-// La invariante que el sistema declara y que no se deduce del marcado: las TRES partes
-// comparten el MISMO font-size. Si alguien reduce la «s», rompe la alineación de alturas.
-check('wordmark: las tres partes comparten font-size — ninguna regla de parte lo fija',
-  !/\.wm>span:nth-child\(\d\)\{[^}]*font-size/.test(r.body));
-check('wordmark: el tamaño lo gobierna la clase, no la parte',
-  /\.wm-sm>span\{font-size:18px\}/.test(r.body) && r.body.includes('class="wm wm-sm"'));
+// Escala y espacio previo: sólo la parte que los declara los lleva, y siempre en em.
+check('wordmark: la «s» se escala en em, relativa al tamaño del wordmark',
+  /nth-child\(3\)\{[^}]*;font-size:0\.81em\}/.test(r.body));
+check('wordmark: «PH» lleva su espacio previo en em',
+  /nth-child\(2\)\{[^}]*;margin-left:-0\.03em\}/.test(r.body));
+check('wordmark: una parte sin escala ni espacio previo no recibe ninguno',
+  !/nth-child\(1\)\{[^}]*(font-size|margin-left)/.test(r.body));
+check('wordmark: el tamaño lo gobierna la clase, en el contenedor y en las partes',
+  /\.wm-sm,\.wm-sm>span\{font-size:18px\}/.test(r.body) && r.body.includes('class="wm wm-sm"'));
 
 check('wordmark: lleva aria-label con el nombre del sitio', r.body.includes('role="img" aria-label="ForumPHs"'));
 check('wordmark: ya no queda el div .site en versalitas', !r.body.includes('<div class="site">'));
@@ -222,12 +228,15 @@ check('sin wordmark en el canal, cae al nombre del sitio en texto plano',
 
 // Roles desconocidos y partes vacias: se descartan, no rompen la pagina.
 conConfig({ ...BASE, wordmark: { parts: [
-  { text: 'A', font: 'inexistente', color: 'inventado', weight: 'no-es-un-numero', tracking: 'javascript:x' },
+  { text: 'A', font: 'inexistente', color: 'inventado', weight: 'no-es-un-numero', tracking: 'javascript:x',
+    scale: 9, space_before: 'calc(1px)' },
   { text: '' }, { notext: true },
 ] } });
 r = await call('zzzzzzzzzzzzzzzzzzzzzz', { ip: '192.0.2.42' });
 check('roles desconocidos caen a valores seguros y la pagina se sirve igual',
   r.code === 404 && r.body.includes('>A<') && !r.body.includes('javascript:'));
+check('escala o espacio previo fuera de rango o no numericos se ignoran',
+  !/nth-child\(1\)\{[^}]*(font-size|margin-left)/.test(r.body) && !r.body.includes('calc(1px)'));
 check('las partes sin texto se descartan',
   (r.body.match(/<span class="wm[^"]*"[^>]*>(<span>[^<]*<\/span>)+<\/span>/) || [''])[0].match(/<span>/g).length === 1);
 

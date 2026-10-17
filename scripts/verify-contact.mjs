@@ -167,6 +167,18 @@ check('el acuse lleva versión de texto y HTML', typeof ack?.text === 'string' &
 const ackAll = JSON.stringify(ack ?? {});
 check('el acuse no repite el nombre, la propiedad ni el mensaje', !/spam\.example|Spam|texto del visitante|Ana/.test(ackAll));
 check('el acuse se marca como respuesta automática', ack?.headers?.['Auto-Submitted'] === 'auto-replied');
+// Firma del acuse: logotype en PNG de medidas fijas (excepción de correo, Sam 2026-10-17),
+// slogan invariable del BP y ninguna persona: la firma es la marca.
+const ackHtml = ack?.html ?? '';
+check('la firma lleva el logotype desde forumphs.com, con alt',
+  /<img src="https:\/\/forumphs\.com\/assets\/email\/forumphs-logotype-light-on-am-l@3x\.png" alt="ForumPHs"/.test(ackHtml));
+check('el logotype tiene ancho y alto fijos — no se agranda en ningún cliente',
+  /width="141" height="26"/.test(ackHtml) && /width:141px;height:26px/.test(ackHtml));
+check('la firma lleva el slogan invariable, en HTML y en texto',
+  ackHtml.includes('Construiste tu patrimonio. Nosotros le construimos un sistema.')
+  && (ack?.text ?? '').includes('Construiste tu patrimonio. Nosotros le construimos un sistema.'));
+check('la firma usa el fondo Amatista Light del BP', ackHtml.includes('background:#EAD9F5'));
+check('la firma no nombra personas ni cargos', !/Ivette|Abogada|Representante|Gerente/.test(ackHtml));
 check('la confirmación del visitante no cambia', r9.res.location === '/?enviado=1');
 
 r9 = await post({ ...OK, correo: 'sales@forumphs.com' });
