@@ -171,11 +171,11 @@ check('el acuse se marca como respuesta automática', ack?.headers?.['Auto-Submi
 // slogan invariable del BP y ninguna persona: la firma es la marca.
 const ackHtml = ack?.html ?? '';
 check('la firma lleva el logotype desde forumphs.com, con alt',
-  /<img src="https:\/\/forumphs\.com\/assets\/email\/forumphs-logotype-light-on-am-l@3x\.png" alt="ForumPHs"/.test(ackHtml));
+  /<img src="https:\/\/forumphs\.com\/assets\/email\/forumphs-logotype-slogan-on-am-l@3x\.png" alt="ForumPHs"/.test(ackHtml));
 check('el logotype tiene ancho y alto fijos — no se agranda en ningún cliente',
-  /width="141" height="26"/.test(ackHtml) && /width:141px;height:26px/.test(ackHtml));
-check('la firma lleva el slogan invariable, en HTML y en texto',
-  ackHtml.includes('Construiste tu patrimonio. Nosotros le construimos un sistema.')
+  /width="342" height="64"/.test(ackHtml) && /width:342px;height:64px/.test(ackHtml));
+check('el slogan va dentro del PNG y en el texto plano; no se repite en el HTML',
+  !ackHtml.includes('Construiste tu patrimonio')
   && (ack?.text ?? '').includes('Construiste tu patrimonio. Nosotros le construimos un sistema.'));
 check('la firma usa el fondo Amatista Light del BP', ackHtml.includes('background:#EAD9F5'));
 check('la firma no nombra personas ni cargos', !/Ivette|Abogada|Representante|Gerente/.test(ackHtml));
