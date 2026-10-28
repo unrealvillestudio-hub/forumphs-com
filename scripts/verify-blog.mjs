@@ -559,6 +559,18 @@ console.log('\n── 21-bis · La negrita del generador se pinta; un asterisco 
   check('el extracto (meta description, listado) no lleva asteriscos',
     ex === 'Here is the mechanism. It matters that you understand it.', ex);
   check('el extracto conserva un asterisco suelto', excerptOf('Rated 4* by readers.') === 'Rated 4* by readers.');
+  // 2026-10-28 — la cursiva: `*texto*` → <em>, anidable con la negrita, y un asterisco suelto sigue siendo texto.
+  const cursiva = paragraphs('An *idea* here and **bold *inside* it** and *italic **with** bold*.');
+  check('`*texto*` se publica como <em>', cursiva.includes('An <em>idea</em> here'), cursiva);
+  check('la cursiva dentro de la negrita', cursiva.includes('<strong>bold <em>inside</em> it</strong>'), cursiva);
+  check('la negrita dentro de la cursiva', cursiva.includes('<em>italic <strong>with</strong> bold</em>'), cursiva);
+  check('ningún asterisco queda a la vista', !cursiva.includes('*'), cursiva);
+  const noCursiva = paragraphs('Rated 4* and 5 * 3 and a*b*c and acción*x* and * spaced *.');
+  check('un asterisco suelto o pegado a una palabra no es cursiva', !noCursiva.includes('<em>'), noCursiva);
+  const inerteEm = paragraphs('*<img src=x onerror=alert(1)>* done');
+  check('lo que va dentro de la cursiva sigue escapado',
+    inerteEm.includes('<em>&lt;img src=x onerror=alert(1)&gt;</em>') && !inerteEm.includes('<img'), inerteEm);
+  check('el extracto no lleva la marca de cursiva', excerptOf('An *idea* here.') === 'An idea here.', excerptOf('An *idea* here.'));
 }
 
 console.log('\n── 24 · Formato editorial (F1): ## subtítulo, > cita, entradilla, cierre ──');

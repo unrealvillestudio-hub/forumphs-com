@@ -1,9 +1,10 @@
 // Marcado en línea que el generador escribe dentro del cuerpo de una pieza.
 //
-// Hoy es UNO: `**texto**`, la negrita. Es lo único que el generador usa y lo único que
-// se traduce — el mismo criterio que ya aplica el publicador de blogs por API
-// (`unrlvl-iid-functions/supabase/functions/blog-promoter`, función `negritas`), para
-// que una pieza se vea igual en todos los blogs, sea cual sea su proveedor.
+// Son DOS: `**texto**`, la negrita, y `*texto*`, la cursiva (Sam, 2026-10-28: «quiero poder
+// aplicar italic al texto cuando lo requiera», en los artículos). Se traducen con el mismo
+// criterio que el publicador de blogs por API (`unrlvl-iid-functions/supabase/functions/
+// blog-promoter`, función `negritas`) y la vista del revisor en el Orchestrator, para que una
+// pieza se vea igual en todos los blogs, sea cual sea su proveedor.
 //
 // Un conversor de markdown completo NO se usa a propósito: el cuerpo lo escribe un
 // modelo y termina en el HTML de un sitio público. Se escapa todo primero y después se
@@ -12,15 +13,23 @@
 // Un asterisco suelto es TEXTO, no un error: sólo un par bien formado —que abre y cierra
 // pegado a una palabra— es negrita. `5 * 3`, `nota*` o `**` a secas se publican tal cual.
 const EMPHASIS = /\*\*(?!\s)([^*]+?)(?<!\s)\*\*/g;
+// La cursiva: UN asterisco que abre y cierra pegado al texto por dentro, y sin letra ni número
+// pegados por fuera — `4*`, `nota*.` o `a*b*c` no son cursiva.
+const ITALIC = /(?<![\p{L}\p{N}*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\p{L}\p{N}*])/gu;
 
-/** `**texto**` → `<strong>texto</strong>`. Recibe texto YA escapado. */
+// La cursiva se traduce antes Y después de la negrita, para que las dos se puedan anidar:
+// `**a *b* c**` y `*a **b** c*`.
+const marcas = (s, negrita, cursiva) =>
+  String(s).replace(ITALIC, cursiva).replace(EMPHASIS, negrita).replace(ITALIC, cursiva);
+
+/** `**texto**` → `<strong>texto</strong>` y `*texto*` → `<em>texto</em>`. Recibe texto YA escapado. */
 export function emphasisToHtml(escaped) {
-  return String(escaped).replace(EMPHASIS, '<strong>$1</strong>');
+  return marcas(escaped, '<strong>$1</strong>', '<em>$1</em>');
 }
 
-/** `**texto**` → `texto`. Para superficies de texto plano: extracto, meta description. */
+/** Quita la negrita y la cursiva. Para superficies de texto plano: extracto, meta description. */
 export function stripEmphasis(text) {
-  return String(text).replace(EMPHASIS, '$1');
+  return marcas(text, '$1', '$1');
 }
 
 // ── Bloques: el formato mínimo del contrato editorial (F1, Sam 2026-10-02) ──────────────
