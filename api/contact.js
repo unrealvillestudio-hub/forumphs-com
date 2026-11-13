@@ -1,5 +1,5 @@
 import { escapeHtml } from './_render.js';
-import { ackAllowed, ackPayload } from './_ack.js';
+import { ackAllowed, ackPayload, OWN_DOMAIN } from './_ack.js';
 
 // Topes de longitud por campo. El formulario es para una primera conversación: nada
 // legítimo necesita más, y un tope evita que el endpoint reenvíe cuerpos arbitrarios.
@@ -40,6 +40,53 @@ export function botReason(body) {
   if (ms < MIN_FILL_MS) return 'TOO_FAST';
   if (ms > MAX_FILL_MS) return 'STALE_FORM';
   return null;
+}
+
+// ── Señales de sospecha (2026-11-13, decisión de Sam) ──────────────────────────────────
+// El campo trampa y el temporizador descartan al bot torpe. Medido el 2026-11-12: en 14 días
+// llegaron 4 consultas de bots que los esquivaron (envían el formulario sin JavaScript, así que
+// `form_ms` no llega). Las 4 repetían el nombre en el campo de la propiedad, y traían texto sin
+// sentido u ofertas en inglés que nombran nuestro propio dominio.
+//
+// Una consulta SOSPECHOSA no se descarta: llega igual al buzón, marcada en el asunto y con sus
+// señales, para que una persona real con un formulario raro nunca se pierda. Lo que NO recibe es
+// el acuse: el acuse sale hacia la dirección que escribió quien llena el formulario, y un bot que
+// escribe direcciones ajenas nos haría enviar correo a desconocidos con nuestro dominio. Eso es lo
+// que daña la reputación del dominio y la cuenta de envío.
+//
+// El teléfono NO se restringe a un país (Sam, 2026-11-13): muchos propietarios viven fuera o usan
+// un número extranjero. Sólo se mira que sea un número posible (7 a 15 dígitos, sin letras).
+export const SUSPECT_SUBJECT_MARK = '(posible bot)';
+
+// Minúsculas, sin tildes y con los espacios colapsados: «Torre  Ánfora» = «torre anfora».
+function normalize(value) {
+  return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Una palabra de 10 letras o más con 5 consonantes seguidas no existe en español ni en inglés
+// corriente («construcción» llega a 4). Es el rastro de un teclado aporreado.
+const MASHED_WORD_RE = /[bcdfghjklmnpqrstvwxyz]{5}/;
+function looksMashed(text) {
+  return normalize(text).split(/[^a-zñ]+/).some((w) => w.length >= 10 && MASHED_WORD_RE.test(w));
+}
+
+const LINK_RE = /(https?:\/\/|www\.)/i;
+
+// Lista de señales (códigos estables) de que la consulta parece de un bot. Vacía = parece persona.
+export function suspectReasons(fields, body) {
+  const reasons = [];
+  const raw = body?.[ELAPSED_FIELD];
+  if (raw == null || String(raw).trim() === '') reasons.push('SIN_TIEMPO');
+  if (fields.propiedad && normalize(fields.propiedad) === normalize(fields.nombre)) reasons.push('PROPIEDAD_IGUAL_A_NOMBRE');
+  if (fields.telefono) {
+    const digits = fields.telefono.replace(/\D/g, '').length;
+    if (/[a-z]/i.test(fields.telefono) || digits < 7 || digits > 15) reasons.push('TELEFONO_IMPOSIBLE');
+  }
+  if (looksMashed(fields.mensaje) || looksMashed(fields.nombre)) reasons.push('TEXTO_SIN_SENTIDO');
+  if (LINK_RE.test(fields.mensaje) || LINK_RE.test(fields.nombre) || LINK_RE.test(fields.propiedad)) reasons.push('ENLACE');
+  // Quien nos escribe para contratar no suele citar nuestra dirección web; quien nos vende algo sí.
+  if (normalize(fields.mensaje).includes(OWN_DOMAIN)) reasons.push('NOMBRA_NUESTRO_DOMINIO');
+  return reasons;
 }
 
 // Texto de un campo: siempre cadena, recortado y acotado a su tope.
@@ -130,6 +177,13 @@ export default async function handler(req, res) {
   // El asunto es una cabecera: sin saltos de línea, aunque el nombre los traiga.
   const subjectName = nombre.replace(/[\r\n]+/g, ' ');
 
+  const suspect = suspectReasons({ nombre, correo, telefono, propiedad, rol, mensaje }, body);
+  if (suspect.length) console.error(`[contact] CONTACT_SUSPECT ${suspect.join(',')}`);
+  const suspectBanner = suspect.length
+    ? `<p style="margin:0 0 16px;padding:10px 12px;background:#FFF4E5;border-left:4px solid #B26A00;font-size:13px;color:#4A4440;">`
+      + `<strong>Posible bot</strong> — no se envió acuse al visitante. Señales: ${escapeHtml(suspect.join(', '))}.</p>`
+    : '';
+
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -143,11 +197,12 @@ export default async function handler(req, res) {
         // sin uso. El remitente sigue siendo noreply@: los filtros de Gmail lo reconocen.
         to: ['contacto@forumphs.com'],  // alias → forumphs507@gmail.com
         reply_to: correo,
-        subject: `Consulta web — ${subjectName}`,
+        subject: suspect.length ? `Consulta web ${SUSPECT_SUBJECT_MARK} — ${subjectName}` : `Consulta web — ${subjectName}`,
         // Todo lo que escribe el visitante entra ESCAPADO: el correo llega al buzón de la
         // empresa y no puede transportar HTML, enlaces ni imágenes de terceros.
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
+            ${suspectBanner}
             <h2 style="color:#5C3472;">Nueva consulta — forumphs.com</h2>
             <table style="width:100%;border-collapse:collapse;">
               <tr><td style="padding:8px 0;color:#666;width:140px;">Nombre</td><td style="padding:8px 0;font-weight:600;">${cell(nombre)}</td></tr>
@@ -167,7 +222,9 @@ export default async function handler(req, res) {
     });
 
     if (response.ok) {
-      await sendAck(correo);
+      // Sin acuse para una consulta sospechosa: ver «Señales de sospecha» arriba.
+      if (suspect.length) console.error('[contact] CONTACT_ACK_SKIPPED_SUSPECT');
+      else await sendAck(correo);
       return res.redirect(303, '/?enviado=1');
     } else {
       const err = await response.json().catch(() => null);
