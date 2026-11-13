@@ -47,7 +47,8 @@ function check(name, cond, extra = '') {
   else { fail++; console.log(`  ✘ ${name} ${extra}`); }
 }
 
-const OK = { nombre: 'Ana Pérez', correo: 'ana@example.com', telefono: '+507 6000-0000', propiedad: 'PH Prueba', rol: 'presidente', mensaje: 'Primera línea\nSegunda línea' };
+// `form_ms` va en el envío normal: el navegador lo escribe siempre. Su ausencia es una señal de bot (§10).
+const OK = { nombre: 'Ana Pérez', correo: 'ana@example.com', telefono: '+507 6000-0000', propiedad: 'PH Prueba', rol: 'presidente', mensaje: 'Primera línea\nSegunda línea', form_ms: '45000' };
 
 console.log('\n── 1 · Envío válido ──');
 let { res, mail } = await post(OK);
@@ -145,8 +146,8 @@ bot = await post({ ...OK, sitio_web: '', form_ms: '45000' });
 check('persona (trampa vacía, 45 s) → se envía', bot.res.location === '/?enviado=1' && bot.mail !== null);
 bot = await post({ ...OK, sitio_web: '   ' });
 check('trampa con sólo espacios cuenta como vacía → se envía', bot.mail !== null);
-bot = await post(OK);
-check('sin form_ms (navegador sin JavaScript) → se envía', bot.mail !== null);
+bot = await post({ ...OK, form_ms: undefined });
+check('sin form_ms (navegador sin JavaScript) → se envía igual (marcado, ver §10)', bot.mail !== null);
 bot = await post({ ...OK, correo: 'sin-arroba', sitio_web: 'x' });
 check('bot con correo inválido: no se le dice qué falló', SILENT(bot.res, bot.mail));
 
@@ -154,7 +155,7 @@ console.log('\n── 9 · Acuse de recibo al prospecto ──');
 // Tras el aviso interno sale un segundo correo, al visitante, desde no-reply@. No repite NADA
 // de lo que escribió: si lo hiciera, el formulario serviría para mandar cualquier texto con
 // nuestra firma a cualquier dirección.
-let r9 = await post({ ...OK, nombre: 'Compre ya en https://spam.example', propiedad: 'PH <b>Spam</b>', mensaje: 'texto del visitante' });
+let r9 = await post({ ...OK, nombre: 'Ana Spam', propiedad: 'PH <b>Spam</b>', mensaje: 'texto del visitante' });
 let ack = sent[1]?.body ?? null;
 check('se envían dos correos: aviso interno y acuse', sent.length === 2, String(sent.length));
 check('el aviso interno va primero, a contacto@ (canal único de prospección)', sent[0]?.body.to?.[0] === 'contacto@forumphs.com');
@@ -165,7 +166,7 @@ check('el acuse dice que esa dirección no recibe respuestas', /no recibe respue
 check('el acuse no trae teléfono ni WhatsApp', !/wa\.me|whatsapp|\+507|6722|6317/i.test(JSON.stringify(ack ?? {})));
 check('el acuse lleva versión de texto y HTML', typeof ack?.text === 'string' && ack.text.length > 0 && typeof ack?.html === 'string');
 const ackAll = JSON.stringify(ack ?? {});
-check('el acuse no repite el nombre, la propiedad ni el mensaje', !/spam\.example|Spam|texto del visitante|Ana/.test(ackAll));
+check('el acuse no repite el nombre, la propiedad ni el mensaje', !/Spam|texto del visitante|Ana/.test(ackAll));
 check('el acuse se marca como respuesta automática', ack?.headers?.['Auto-Submitted'] === 'auto-replied');
 // Firma del acuse: logotype en PNG de medidas fijas (excepción de correo, Sam 2026-10-17),
 // slogan invariable del BP y ninguna persona: la firma es la marca.
@@ -207,6 +208,45 @@ globalThis.fetch = async () => { throw new Error('red caída'); };
 r9 = await post(OK);
 check('excepción en la red → /?enviado=0 (el aviso tampoco salió)', r9.res.location === '/?enviado=0');
 globalThis.fetch = fetchBefore9;
+
+
+console.log('\n── 10 · Señales de sospecha: llega marcada, sin acuse ──');
+// Medido el 2026-11-12: 4 consultas de bots en 14 días, todas sin `form_ms` y con la propiedad
+// igual al nombre. Una sospechosa NO se pierde: llega al buzón marcada y con sus señales. Lo que
+// no sale es el acuse, porque iría a una dirección que escribió el bot.
+const MARKED = (m) => typeof m?.subject === 'string' && m.subject.startsWith('Consulta web (posible bot) — ');
+const casos = [
+  ['sin form_ms (envío directo, sin JavaScript)', { ...OK, form_ms: undefined }, 'SIN_TIEMPO'],
+  ['propiedad igual al nombre (con tildes y mayúsculas distintas)', { ...OK, nombre: 'Ána  Pérez', propiedad: 'ana pérez' }, 'PROPIEDAD_IGUAL_A_NOMBRE'],
+  ['teléfono con letras', { ...OK, telefono: '555-ABCD-12' }, 'TELEFONO_IMPOSIBLE'],
+  ['teléfono demasiado corto', { ...OK, telefono: '12345' }, 'TELEFONO_IMPOSIBLE'],
+  ['teléfono demasiado largo', { ...OK, telefono: '1234567890123456' }, 'TELEFONO_IMPOSIBLE'],
+  ['texto aporreado', { ...OK, mensaje: 'Gfihudwgfyehjwowjifwhu fuehiqokewwfue' }, 'TEXTO_SIN_SENTIDO'],
+  ['enlace en el mensaje', { ...OK, mensaje: 'Vea www.ejemplo-de-oferta.test' }, 'ENLACE'],
+  ['nombra nuestro dominio (oferta de venta)', { ...OK, mensaje: 'Hi, someone lands on ForumPHs.com at 11pm and leaves' }, 'NOMBRA_NUESTRO_DOMINIO'],
+];
+for (const [nombre, body, code] of casos) {
+  sent = []; logged = [];
+  const r = await post(body);
+  check(`${nombre} → llega marcada y sin acuse`, r.res.location === '/?enviado=1' && sent.length === 1 && MARKED(sent[0].body), `${sent.length} ${sent[0]?.body.subject}`);
+  check(`  · la señal ${code} va en el correo y en el log`, (sent[0]?.body.html ?? '').includes(code) && logged.some((l) => l.includes('CONTACT_SUSPECT') && l.includes(code)));
+}
+check('el log registra que no salió acuse (CONTACT_ACK_SKIPPED_SUSPECT)', logged.some((l) => l.includes('[contact] CONTACT_ACK_SKIPPED_SUSPECT')));
+
+// Lo que una persona real escribe NO se marca.
+const personas = [
+  ['número extranjero (no se restringe a un país)', { ...OK, telefono: '+1 (305) 555-0142' }],
+  ['número de Panamá sin prefijo', { ...OK, telefono: '6000-0000' }],
+  ['sin teléfono', { ...OK, telefono: '' }],
+  ['sin propiedad', { ...OK, propiedad: '' }],
+  ['palabras largas del español', { ...OK, mensaje: 'Responsabilidades constitucionalmente establecidas; construcción y administración' }],
+  ['mensaje en inglés corriente', { ...OK, mensaje: 'Hi, I own a unit in Panama and would like a quote for the building' }],
+];
+for (const [nombre, body] of personas) {
+  sent = []; logged = [];
+  const r = await post(body);
+  check(`persona: ${nombre} → sin marca y con acuse`, r.res.location === '/?enviado=1' && sent.length === 2 && !MARKED(sent[0].body), `${sent.length} ${sent[0]?.body.subject}`);
+}
 
 console.log(`\n═══ ${pass} pasaron · ${fail} fallaron ═══`);
 process.exit(fail ? 1 : 0);
